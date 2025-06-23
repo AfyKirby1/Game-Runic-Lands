@@ -7,8 +7,18 @@ from typing import List, Tuple, Dict, Optional
 from .synapstex import ParticleType, RenderLayer, BlendMode
 from .world_generator import SynapstexWorldGenerator, WorldChunk, TerrainType
 import logging
+from enum import Enum, auto
 
 logger = logging.getLogger(__name__)
+
+class TerrainType(Enum):
+    GRASS = "grass"
+    STONE = "stone"
+    WATER = "water"
+    LAVA = "lava"
+    DIRT = "dirt"
+    SAND = "sand"
+    SNOW = "snow"
 
 class GrassBlade:
     def __init__(self, x: int, y: int, height: int = 10):
@@ -275,31 +285,45 @@ class DayNightSystem:
 
 class World:
     def __init__(self, map_file=None, seed: int = None):
-        # Initialize the world with procedural generator
+        # Initialize pygame if not already done
+        if not pygame.get_init():
+            pygame.init()
+            
+        self.tile_size = 32  # Size of each tile in pixels
+        self.chunk_size = 16  # Size of each chunk in tiles
+        self.width = 64  # World width in tiles
+        self.height = 64  # World height in tiles
+        self.view_distance = 2  # Number of chunks to load around player
+        
+        # Initialize collision system
+        self.collision_rects = []  # List to store collision rectangles
+        
+        # Convert dimensions to pixels for bounds checking
+        self.pixel_width = self.width * self.tile_size
+        self.pixel_height = self.height * self.tile_size
+        
+        # Initialize world generation
         self.seed = seed if seed is not None else random.randint(0, 999999)
+        random.seed(self.seed)
         self.generator = SynapstexWorldGenerator(self.seed)
         
-        # Track loaded chunks
+        # Initialize chunk storage
         self.loaded_chunks = {}
-        self.view_distance = 2
         
-        # Player spawn points - ensure one is near center (0,0) chunk
-        self.spawn_points = self._generate_spawn_points(num_points=4)
+        # Initialize spawn points
+        self.spawn_points = self._generate_spawn_points()
         
-        # Collision detection
-        self.collision_rects = []
-        
-        # Grass blade system
+        # Initialize grass system
         self.grass_blades = []
-        self.max_grass_blades = 300
-        self.wind_strength = 3.0
-        self.wind_time = 0.0
+        self.max_grass_blades = 1000
+        self.wind_time = 0
+        self.wind_strength = 0.5
         
         # World time system
         self.minutes = 0
-        self.hours = 6  # Start at 6:00
-        self.days = 1   # Start at day 1
-        self.minutes_per_second = 0.8  # 24 hours will take 30 real minutes (1440/1800 = 0.8)
+        self.hours = 8  # Start at 8 AM
+        self.days = 1
+        self.minutes_per_second = 1  # Game time passes at 1 minute per real second
         
         # Create day/night system
         self.day_night_system = DayNightSystem(self)
@@ -308,10 +332,9 @@ class World:
         if map_file and os.path.exists(map_file):
             self.load_map(map_file)
         else:
-            # Ensure initial chunks around the center spawn are loaded
-            center_spawn = self.get_centered_spawn()
-            center_chunk_x = center_spawn[0] // (self.generator.chunk_size * 32)
-            center_chunk_y = center_spawn[1] // (self.generator.chunk_size * 32)
+            # Get the center chunk coordinates
+            center_chunk_x = self.width // (2 * self.chunk_size)
+            center_chunk_y = self.height // (2 * self.chunk_size)
             self._load_chunks_around(center_chunk_x, center_chunk_y)
             self.init_grass() # Initialize grass after loading initial chunks
         
@@ -332,7 +355,7 @@ class World:
     def _generate_spawn_points(self, num_points: int = 4) -> List[Tuple[int, int]]:
         """Generate potential spawn points, ensuring one is near the center."""
         spawn_points = []
-        chunk_size_pixels = self.generator.chunk_size * 32 # Approx tile size
+        chunk_size_pixels = self.chunk_size * 32 # Approx tile size
 
         # 1. Ensure a spawn point near the center chunk (0,0)
         center_chunk = self.generator.get_chunk(0, 0)
@@ -341,7 +364,7 @@ class World:
             x = random.randint(0, center_chunk.size - 1)
             y = random.randint(0, center_chunk.size - 1)
             tile_index = y * center_chunk.size + x
-            if tile_index < len(center_chunk.tiles) and center_chunk.tiles[tile_index]["type"] == TerrainType.GRASS:
+            if tile_index < len(center_chunk.tiles) and center_chunk.tiles[tile_index]["type"] == TerrainType.GRASS.value:
                 spawn_points.append((x * 32 + 16, y * 32 + 16)) # Center of the tile
                 found_center = True
                 break
@@ -362,7 +385,7 @@ class World:
             # Find a random grass tile in this chunk
             potential_spots = []
             for i, tile in enumerate(chunk.tiles):
-                 if tile["type"] == TerrainType.GRASS:
+                 if tile["type"] == TerrainType.GRASS.value:
                      tile_x = i % chunk.size
                      tile_y = i // chunk.size
                      potential_spots.append((tile_x, tile_y))
@@ -395,7 +418,7 @@ class World:
         local_seed = self.generator.seed
         
         for tile in chunk.tiles:
-            if tile["type"] == TerrainType.GRASS:
+            if tile["type"] == TerrainType.GRASS.value:
                 # Create a consistent seed for this tile based on its world position
                 tile_seed = (tile["x"] * 1299721) ^ (tile["y"] * 5741) ^ local_seed
                 rng = random.Random(tile_seed)
@@ -439,6 +462,7 @@ class World:
     
     def _load_chunks_around(self, center_x: int, center_y: int):
         """Load chunks in view distance around given coordinates"""
+        chunks_loaded = 0
         for dx in range(-self.view_distance, self.view_distance + 1):
             for dy in range(-self.view_distance, self.view_distance + 1):
                 chunk_x = center_x + dx
@@ -448,11 +472,20 @@ class World:
                     self._generate_tile_variations(chunk)
                     self.loaded_chunks[(chunk_x, chunk_y)] = chunk
                     self._update_collision_rects(chunk)
+                    chunks_loaded += 1
+                    
+                    # Debug: Count grass tiles in this chunk
+                    grass_count = sum(1 for tile in chunk.tiles if tile["type"] == TerrainType.GRASS.value)
+                    logger.debug(f"Loaded chunk ({chunk_x}, {chunk_y}) with {len(chunk.tiles)} tiles, {grass_count} grass tiles")
+                    
+        if chunks_loaded > 0:
+            logger.debug(f"Loaded {chunks_loaded} new chunks around ({center_x}, {center_y})")
+            logger.debug(f"Total loaded chunks: {len(self.loaded_chunks)}")
     
     def _update_collision_rects(self, chunk: WorldChunk):
         """Update collision rectangles based on chunk terrain"""
         for tile in chunk.tiles:
-            if tile["type"] in [TerrainType.STONE, TerrainType.WATER, TerrainType.LAVA]:
+            if tile["type"] in [TerrainType.STONE.value, TerrainType.WATER.value, TerrainType.LAVA.value]:
                 self.collision_rects.append(
                     pygame.Rect(tile["x"] * 32, tile["y"] * 32, 32, 32)
                 )
@@ -469,7 +502,7 @@ class World:
         
         for chunk in self.loaded_chunks.values():
             for tile in chunk.tiles:
-                if tile["type"] == TerrainType.GRASS and blade_count < self.max_grass_blades:
+                if tile["type"] == TerrainType.GRASS.value and blade_count < self.max_grass_blades:
                     # Only place grass on a subset of grass tiles to reduce counts
                     if random.random() < 0.3:  # 30% chance per grass tile
                         x = tile["x"] * 32 + random.randint(0, 32)
@@ -525,9 +558,13 @@ class World:
             del self.loaded_chunks[chunk_key]
     
     def update(self, dt: float, graphics=None):
-        """Update world elements"""
-        # Add logging to track updates
-        # logger.debug(f"World update called with dt: {dt}") # Commented out: can be very verbose
+        """Update world state, including tile variations, grass, and day/night cycle."""
+        # logger.debug(f"World update called with dt: {dt}") # Commented out: can be verbose
+
+        if not graphics:
+            logger.warning("World.update called without graphics object, cannot emit particles.")
+
+        # Update time
         try:
             # Update world time
             real_minutes_passed = dt * self.minutes_per_second
@@ -549,15 +586,16 @@ class World:
             # Create more visible leaf particles (Ensure graphics object is passed)
             if graphics and hasattr(graphics, 'particle_system') and not graphics.particle_system.disabled:
                 if random.random() < dt * 0.02:  # 2% chance per second
-                    x = random.uniform(0, graphics.screen_size[0]) # Use screen size from graphics
-                    y = -20  # Start above screen
+                    x = random.uniform(0, self.pixel_width)
+                    y = -20  # Start above world
                     graphics.particle_system.emit(
                         x, y, ParticleType.LEAF,
                         count=1,
                         color=(55, 180, 55, 255),  # Brighter, fully opaque green
                         size_range=(4.0, 6.0),  # Larger leaves
                         max_speed=15.0, # Adjusted speed for drifting leaf
-                        lifetime_range=(3.0, 5.0)  # Good lifetime
+                        lifetime_range=(3.0, 5.0),  # Good lifetime
+                        use_world_space=True
                     )
             else:
                 if not graphics:
@@ -568,7 +606,13 @@ class World:
             # Decide how to handle error, e.g., skip frame or log and continue
     
     def draw(self, screen, offset: Tuple[float, float] = (0, 0)):
+        """Draw the world with camera offset"""
         offset_x, offset_y = offset
+        
+        # Debug: Log drawing info
+        logger.debug(f"Drawing world with offset ({offset_x}, {offset_y}), {len(self.loaded_chunks)} chunks loaded")
+        
+        tiles_drawn = 0
         
         # Draw base tiles with smoother gradient base colors
         for chunk in self.loaded_chunks.values():
@@ -581,8 +625,10 @@ class World:
                    tile_screen_y + 32 < 0 or tile_screen_y > screen.get_height():
                    continue
                    
+                tiles_drawn += 1
+                   
                 # Calculate base color with subtle variation based on world position
-                if tile["type"] == TerrainType.GRASS:
+                if tile["type"] == TerrainType.GRASS.value:
                     # Original base color
                     base_r, base_g, base_b = 34, 139, 34
 
@@ -605,7 +651,7 @@ class World:
                                    pygame.Rect(tile_screen_x, tile_screen_y, 32, 32))
                 
                 # Draw static texture/variation for grass tiles
-                if tile["type"] == TerrainType.GRASS:
+                if tile["type"] == TerrainType.GRASS.value:
                     # Ensure tile_key uses world coordinates matching variation generation
                     tile_key = (tile["x"], tile["y"])
                     if tile_key in chunk.tile_variations:
@@ -615,8 +661,14 @@ class World:
                             var_screen_y = tile_screen_y + pos_y
                             pygame.draw.circle(screen, var_color, 
                                             (int(var_screen_x), int(var_screen_y)), size)
+        
+        if tiles_drawn > 0:
+            logger.debug(f"Drew {tiles_drawn} tiles on screen")
+        else:
+            logger.warning("No tiles drawn! Check chunk loading and camera offset")
             
-            # Draw structures (with offset)
+        # Draw structures (with offset)
+        for chunk in self.loaded_chunks.values():
             for structure in chunk.structures:
                 struct_screen_x = structure["x"] * 32 - offset_x
                 struct_screen_y = structure["y"] * 32 - offset_y
@@ -636,6 +688,37 @@ class World:
                    res_screen_y + 32 < 0 or res_screen_y > screen.get_height():
                     continue
                 self._draw_resource(screen, resource, (res_screen_x, res_screen_y))
+        
+        # Draw world borders - bold black lines at world edges
+        world_pixel_width = self.width * 32
+        world_pixel_height = self.height * 32
+        
+        # Calculate border positions on screen
+        border_thickness = 4
+        
+        # Top border
+        top_y = -offset_y
+        if -border_thickness <= top_y <= screen.get_height():
+            pygame.draw.rect(screen, (0, 0, 0), 
+                           (-offset_x, top_y, world_pixel_width, border_thickness))
+        
+        # Bottom border  
+        bottom_y = world_pixel_height - offset_y
+        if -border_thickness <= bottom_y <= bottom_y + border_thickness:
+            pygame.draw.rect(screen, (0, 0, 0), 
+                           (-offset_x, bottom_y, world_pixel_width, border_thickness))
+        
+        # Left border
+        left_x = -offset_x
+        if -border_thickness <= left_x <= screen.get_width():
+            pygame.draw.rect(screen, (0, 0, 0), 
+                           (left_x, -offset_y, border_thickness, world_pixel_height))
+        
+        # Right border
+        right_x = world_pixel_width - offset_x
+        if -border_thickness <= right_x <= screen.get_width():
+            pygame.draw.rect(screen, (0, 0, 0), 
+                           (right_x, -offset_y, border_thickness, world_pixel_height))
         
         # Draw grass blades (with offset)
         for blade in self.grass_blades:
@@ -874,14 +957,14 @@ class World:
         """Get the color for a tile type"""
         colors = {
             TerrainType.GRASS: (34, 139, 34),
+            TerrainType.STONE: (128, 128, 128),
+            TerrainType.WATER: (30, 144, 255),
+            TerrainType.LAVA: (207, 16, 32),
             TerrainType.DIRT: (139, 69, 19),
             TerrainType.SAND: (238, 214, 175),
-            TerrainType.STONE: (128, 128, 128),
-            TerrainType.SNOW: (250, 250, 250),
-            TerrainType.LAVA: (207, 16, 32),
-            TerrainType.WATER: (30, 144, 255)
+            TerrainType.SNOW: (250, 250, 250)
         }
-        return colors.get(tile_type, (100, 100, 100))
+        return colors.get(tile_type, (100, 100, 100))  # Default gray color for unknown types
     
     def _draw_tree(self, screen, tree, screen_pos: Tuple[float, float]):
         """Draw a tree structure at the given screen position."""
@@ -1060,7 +1143,7 @@ class World:
         # Load time data
         time_data = data.get("time", {})
         self.minutes = time_data.get("minutes", 0)
-        self.hours = time_data.get("hours", 6)
+        self.hours = time_data.get("hours", 8)
         self.days = time_data.get("days", 1)
         
         # Load chunks

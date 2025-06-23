@@ -1,0 +1,93 @@
+# Cursor Rule: Audio System Management
+
+## Overview
+Properly manage audio resources with error handling and graceful fallbacks.
+
+## Rules
+
+1. **Audio Initialization**
+   - Initialize mixer first
+   - Create required directories
+   - Handle missing files
+   - Provide fallback sounds
+
+2. **Resource Management**
+   - Load sounds on demand
+   - Cache loaded sounds
+   - Handle missing files
+   - Clean up resources
+
+3. **Error Handling**
+   - Catch specific exceptions
+   - Log errors properly
+   - Provide fallbacks
+   - Continue without audio
+
+4. **Directory Structure**
+   - Organize audio files
+   - Use consistent naming
+   - Document requirements
+   - Handle missing files
+
+## Implementation
+
+```python
+def setup_audio():
+    """Initialize audio system with error handling."""
+    try:
+        pygame.mixer.init()
+        # Create required directories
+        audio_dir = Path("assets/audio")
+        audio_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Define required sounds
+        required_sounds = {
+            'menu_click': 'menu_click.wav',
+            'menu_select': 'menu_select.wav',
+            'attack': 'attack.wav'
+        }
+        
+        # Load sounds with error handling
+        sounds = {}
+        for name, filename in required_sounds.items():
+            try:
+                sound_path = audio_dir / filename
+                if sound_path.exists():
+                    sounds[name] = pygame.mixer.Sound(str(sound_path))
+                    logging.info(f"Loaded sound: {sound_path}")
+                else:
+                    logging.warning(f"Could not load sound: {sound_path}")
+            except Exception as e:
+                logging.warning(f"Error loading sound {filename}: {e}")
+        
+        return sounds
+    except Exception as e:
+        logging.error(f"Error initializing audio system: {e}")
+        return {}
+```
+
+## Best Practices
+
+1. **Initialization**
+   - Initialize mixer first
+   - Create directories
+   - Load required sounds
+   - Handle errors
+
+2. **Resource Management**
+   - Cache loaded sounds
+   - Clean up properly
+   - Handle missing files
+   - Provide fallbacks
+
+3. **Error Handling**
+   - Log all errors
+   - Continue without audio
+   - Provide fallbacks
+   - Document issues
+
+4. **Directory Structure**
+   - Organize by type
+   - Use consistent names
+   - Document requirements
+   - Handle missing files

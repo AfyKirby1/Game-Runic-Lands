@@ -7,39 +7,35 @@ from systems.synapstex import ParticleType
 import os
 import logging
 import random
-from typing import Tuple
+from typing import Tuple, Dict
 
 logger = logging.getLogger(__name__)
 
 class Player(Character):
-    def __init__(self, x: int, y: int, color: tuple, controls: dict, world=None):
+    def __init__(self, x: float, y: float, color: Tuple[int, int, int], controls: Dict[str, int], world=None):
         super().__init__(x, y, color)
+        self.pos = [x, y]
+        self.color = color
         self.controls = controls
-        self.size = (32, 32)
-        self.rect = pygame.Rect(x, y, *self.size)
-        self.pos = [x, y]  # For compatibility with existing code
-        self.world = world  # Add world reference
+        self.world = world
+        self.size = 32  # Player size in pixels
+        self.speed = 200  # Pixels per second
+        self.run_multiplier = 1.6  # Speed multiplier when running
         
-        # Initialize inventory
-        self.inventory = Inventory(20)  # Create inventory with 20 slots
-        self.stats = Stats()  # Initialize player stats
+        # Initialize player stats
+        self.name = "Adventurer"
+        self.level = 1
+        self.stats = Stats()
+        self.inventory = Inventory()
         
-        # Movement speeds
-        self.stats.speed = 75  # Base speed increased from 50
-        self.base_speed = 75  # Store base speed for reference
-        self.run_multiplier = 2.5  # Run speed multiplier
+        # Create name text surface
+        self.font = pygame.font.Font(None, 24)
+        self.update_name_text()
         
-        # Movement attributes
-        self.vx = 0  # Horizontal velocity
-        self.vy = 0  # Vertical velocity
-        self.max_speed = 150  # Maximum movement speed (increased from 100)
-        self.acceleration = 200  # Movement acceleration
-        self.friction = 0.85  # Movement friction (slows down when not moving)
-        self.is_moving = False  # Track if player is moving
-        
-        # Initialize job and level attributes
-        self.job = "Adventurer"
-        self.level = self.stats.level
+        # Movement state
+        self.moving = False
+        self.running = False
+        self.facing = "right"
         
         # Initialize sprite
         sprite_path = "assets/sprites/characters/player/png/base_wanderer.png"
@@ -51,6 +47,7 @@ class Player(Character):
             # For now, we'll use a simple approach, until we have full sprite sheets
             # Later we'll use CharacterSprite from systems.sprite
             self.sprite_img = pygame.image.load(sprite_path).convert_alpha()
+            logger.info(f"Sprite loaded successfully. Size: {self.sprite_img.get_size()}")
             
             # Load animation frames
             self.animations = {}
@@ -61,256 +58,211 @@ class Player(Character):
             self.animation_timer = 0
             self.animation_speed = 0.15  # Seconds per frame
             self.current_frame = 0
+            
+            logger.info(f"Animation system initialized. Available animations: {list(self.animations.keys())}")
         else:
             # Fall back to rectangle if sprite isn't available
             logger.warning(f"Sprite not found at {sprite_path}, using fallback rectangle")
             self.use_sprite = False
         
+    def load_animation_frames(self, sprite_path: str, frame_count: int):
+        """Load animation frames from a sprite sheet"""
+        try:
+            sprite_sheet = pygame.image.load(sprite_path).convert_alpha()
+            frames = []
+            frame_width = sprite_sheet.get_width() // frame_count
+            frame_height = sprite_sheet.get_height()
+            
+            for i in range(frame_count):
+                frame_rect = pygame.Rect(i * frame_width, 0, frame_width, frame_height)
+                frame = sprite_sheet.subsurface(frame_rect)
+                frames.append(frame)
+                
+            logger.info(f"Loaded {len(frames)} animation frames from {sprite_path}")
+            return frames
+        except Exception as e:
+            logger.warning(f"Failed to load animation frames from {sprite_path}: {e}")
+            return [self.sprite_img]  # Fallback to base sprite
+
     def load_animations(self):
         """Load animation frames"""
         # Check for animation sprite sheets
         base_dir = "assets/sprites/characters/player/png"
         
-        # Idle animation
+        # For now, since we only have base_body.png, use it for all animations
+        logger.info("Loading animations...")
+        
+        # Idle animation - try specific file first, then fallback to base sprite
         idle_path = f"{base_dir}/base_wanderer_idle.png"
         if os.path.exists(idle_path):
             self.animations[AnimationState.IDLE] = self.load_animation_frames(idle_path, 4)
+            logger.info("Loaded idle animation from sprite sheet")
         else:
             self.animations[AnimationState.IDLE] = [self.sprite_img]
+            logger.info("Using base sprite for idle animation")
             
-        # Walking animation
+        # Walking animation - try specific file first, then fallback to base sprite
         walk_path = f"{base_dir}/base_wanderer_walk.png"
         if os.path.exists(walk_path):
             self.animations[AnimationState.WALKING] = self.load_animation_frames(walk_path, 4)
+            logger.info("Loaded walking animation from sprite sheet")
         else:
             self.animations[AnimationState.WALKING] = [self.sprite_img]
+            logger.info("Using base sprite for walking animation")
             
-        # Attack animation
+        # Attack animation - try specific file first, then fallback to base sprite
         attack_path = f"{base_dir}/base_wanderer_attack.png"
         if os.path.exists(attack_path):
             self.animations[AnimationState.ATTACKING] = self.load_animation_frames(attack_path, 4)
+            logger.info("Loaded attack animation from sprite sheet")
         else:
             self.animations[AnimationState.ATTACKING] = [self.sprite_img]
-    
-    def load_animation_frames(self, sheet_path, frame_count):
-        """Extract animation frames from a sprite sheet"""
-        sheet = pygame.image.load(sheet_path).convert_alpha()
-        frames = []
-        frame_width = sheet.get_width() // frame_count
-        frame_height = sheet.get_height()
-        
-        for i in range(frame_count):
-            frame = pygame.Surface((frame_width, frame_height), pygame.SRCALPHA)
-            frame.blit(sheet, (0, 0), (i * frame_width, 0, frame_width, frame_height))
-            frames.append(frame)
+            logger.info("Using base sprite for attack animation")
             
-        return frames
+        logger.info(f"Animation loading complete. States available: {list(self.animations.keys())}")
+        
+    def update_name_text(self):
+        """Update the name text surface with current name and level"""
+        self.name_text = self.font.render(f"{self.name} Lv.{self.level}", True, (255, 255, 255))
+        # Create a rect for the text surface
+        self.name_text_rect = self.name_text.get_rect()
+        # Set initial position (will be updated in game loop)
+        self.name_text_rect.center = (0, 0)  # Initial position, will be updated later
         
     def move(self, keys):
-        """Handle player movement"""
-        # Calculate target velocity based on key presses
-        target_vx = 0
-        target_vy = 0
+        """Handle player movement based on keyboard input"""
+        dx = dy = 0
         
-        # Check if running
-        is_running = keys[self.controls['run']]
-        current_speed = self.stats.speed * (self.run_multiplier if is_running else 1.0)
-        current_max_speed = self.max_speed * (self.run_multiplier if is_running else 1.0)
+        # Check if running key is pressed
+        self.running = keys[self.controls.get('run', pygame.K_LSHIFT)]
+        speed = self.speed * (self.run_multiplier if self.running else 1.0)
         
-        if keys[self.controls['left']]:
-            target_vx = -current_speed
-            self.current_direction = Direction.LEFT
-        if keys[self.controls['right']]:
-            target_vx = current_speed
-            self.current_direction = Direction.RIGHT
         if keys[self.controls['up']]:
-            target_vy = -current_speed
-            self.current_direction = Direction.UP
+            dy -= speed
         if keys[self.controls['down']]:
-            target_vy = current_speed
-            self.current_direction = Direction.DOWN
+            dy += speed
+        if keys[self.controls['left']]:
+            dx -= speed
+            self.facing = "left"
+        if keys[self.controls['right']]:
+            dx += speed
+            self.facing = "right"
             
-        # Store previous position for movement check
-        self.prev_pos = self.pos.copy()
-        
-        # Apply acceleration toward target velocity
-        dt = 1/60  # Assume 60 FPS if not provided
-        
-        # Gradually approach target velocity
-        if target_vx != 0:
-            self.vx += (target_vx - self.vx) * 0.2
-        else:
-            self.vx *= 0.8  # Apply friction when no input
+        # Update movement state
+        self.moving = dx != 0 or dy != 0
             
-        if target_vy != 0:
-            self.vy += (target_vy - self.vy) * 0.2
-        else:
-            self.vy *= 0.8  # Apply friction when no input
+        # Normalize diagonal movement
+        if dx != 0 and dy != 0:
+            dx *= 0.7071  # 1/√2
+            dy *= 0.7071
+            
+        # Update position with delta time
+        dt = 1/60  # Fixed time step for consistent movement
+        new_x = self.pos[0] + dx * dt
+        new_y = self.pos[1] + dy * dt
         
-        # Cap velocity to max speed
-        speed = (self.vx**2 + self.vy**2)**0.5
-        if speed > current_max_speed:
-            scale = current_max_speed / speed
-            self.vx *= scale
-            self.vy *= scale
+        # World bounds checking - prevent player from going outside world boundaries
+        if self.world:
+            world_width = self.world.width * 32  # Convert tiles to pixels
+            world_height = self.world.height * 32
+            
+            # Keep player within world bounds with some padding from the border
+            border_padding = 8  # Pixels from the border
+            new_x = max(border_padding, min(new_x, world_width - self.size - border_padding))
+            new_y = max(border_padding, min(new_y, world_height - self.size - border_padding))
         
+        # Apply the bounded position
+        self.pos[0] = new_x
+        self.pos[1] = new_y
+        
+    def update(self, dt: float):
+        """Update player state including animations"""
         # Update animation state based on movement
-        if self.vx != 0 or self.vy != 0:
+        if self.moving:
             self.current_state = AnimationState.WALKING
-            self.is_moving = True
-            # Adjust animation speed based on running
-            self.animation_speed = 0.1 if is_running else 0.15
         else:
             self.current_state = AnimationState.IDLE
-            self.is_moving = False
-            self.animation_speed = 0.15  # Reset animation speed
-    
-    def is_moving(self) -> bool:
-        """Check if the player is currently moving"""
-        if not hasattr(self, 'prev_pos'):
-            return False
-        return self.pos != self.prev_pos
-    
-    def set_state(self, state):
-        """Change animation state"""
-        if self.current_state != state:
-            self.current_state = state
-            self.current_frame = 0
-            self.animation_timer = 0
-    
-    def update(self, dt):
-        """Update player state, position, and animation."""
-        # logger.debug(f"Player update called with dt: {dt}") # Commented out: can be verbose
-        try:
-            # Update movement/position based on velocity
-            self.pos[0] += self.vx * dt
-            self.pos[1] += self.vy * dt
-
-            # Keep player on screen - add screen boundary checks
-            # REMOVED CLAMPING - World boundaries handled by collision / chunk loading
-            # if self.world and hasattr(self.world, 'width') and hasattr(self.world, 'height'):
-            #     # Clamp to world boundaries
-            #     self.pos[0] = max(0, min(self.pos[0], self.world.width - self.size[0]))
-            #     self.pos[1] = max(0, min(self.pos[1], self.world.height - self.size[1]))
-            # else:
-            #     # Fallback to reasonable screen boundaries if world dimensions aren't available
-            #     self.pos[0] = max(0, min(self.pos[0], 800 - self.size[0]))
-            #     self.pos[1] = max(0, min(self.pos[1], 600 - self.size[1]))
-            # END REMOVAL
-
-            self.rect.topleft = self.pos
             
-            # Apply friction/damping
-            damping = 0.85  # Adjust for desired slipperiness
-            self.vx *= damping
-            self.vy *= damping
+        # Update animation timer and frame
+        if self.use_sprite and hasattr(self, 'animations'):
+            self.animation_timer += dt
             
-            # Stop movement if velocity is very low
-            threshold = 0.1
-            if abs(self.vx) < threshold:
-                self.vx = 0
-            if abs(self.vy) < threshold:
-                self.vy = 0
-                
-            # Determine animation state based on velocity
-            if self.vx != 0 or self.vy != 0:
-                self.current_state = AnimationState.WALKING
-            else:
-                self.current_state = AnimationState.IDLE
-                
-            # Update direction based on velocity (prioritize horizontal)
-            if self.vx > 0:
-                self.current_direction = Direction.RIGHT
-            elif self.vx < 0:
-                self.current_direction = Direction.LEFT
-            elif self.vy > 0:
-                self.current_direction = Direction.DOWN
-            elif self.vy < 0:
-                self.current_direction = Direction.UP
+            # Get current animation frames
+            current_animation = self.animations.get(self.current_state, [self.sprite_img])
             
-            # Update sprite animation
-            if hasattr(self, 'sprite') and self.use_sprite:
-                self.animation_timer += dt
+            # Ensure we have valid frames and current_frame is in bounds
+            if current_animation and len(current_animation) > 0:
+                # Check if it's time to advance to next frame
                 if self.animation_timer >= self.animation_speed:
                     self.animation_timer = 0
-                    frames = self.animations[self.current_state]
-                    self.current_frame = (self.current_frame + 1) % len(frames)
-            
-            # Emit movement particles (if moving and graphics available)
-            if (self.vx != 0 or self.vy != 0) and hasattr(self.world, 'graphics'):
-                if random.random() < 0.3: # Chance to emit particle
-                     self.world.graphics.particle_system.emit(
-                        self.rect.centerx, self.rect.bottom, # Emit from feet
-                        particle_type=ParticleType.DUST,
-                        count=1,
-                        color=(180, 180, 180, 150), # Dusty color
-                        size_range=(1.0, 2.5),
-                        max_speed=5.0,
-                        lifetime_range=(0.2, 0.5)
-                    )
-
-        except Exception as e:
-            logger.error(f"Error during player update: {e}", exc_info=True)
-            # Optionally handle error, e.g., reset player state
+                    self.current_frame = (self.current_frame + 1) % len(current_animation)
+                    
+                # Ensure current_frame is within bounds
+                if self.current_frame >= len(current_animation):
+                    self.current_frame = 0
+            else:
+                # Fallback if no animation frames available
+                self.current_frame = 0
         
-        # Apply equipment stat bonuses
-        equipment_stats = self.inventory.equipment.get_stats_boost()
-        for stat, value in equipment_stats.items():
-            # Apply temporary stat boosts for this frame
-            # In a more complex system, we'd have base_stats and bonus_stats
-            if hasattr(self.stats, stat):
-                # For now, we'll just modify the stats directly
-                # A better approach would be to cache original stats and apply modifiers
-                pass
+    def draw(self, screen: pygame.Surface, offset: Tuple[float, float] = (0, 0)):
+        """Draw the player with proper animation"""
+        # Calculate screen position (offset from camera)
+        screen_x = int(self.pos[0] - offset[0])
+        screen_y = int(self.pos[1] - offset[1])
         
-    def draw(self, screen, offset: Tuple[float, float] = (0, 0)):
-        offset_x, offset_y = offset
-        screen_pos_x = self.pos[0] - offset_x
-        screen_pos_y = self.pos[1] - offset_y
-
-        # Basic culling
-        if screen_pos_x + self.size[0] < 0 or screen_pos_x > screen.get_width() or \
-           screen_pos_y + self.size[1] < 0 or screen_pos_y > screen.get_height():
-           return
-
-        if self.use_sprite:
-            # Get current animation frame
-            frames = self.animations[self.current_state]
-            current_frame_index = self.current_frame % len(frames) # Ensure index is valid
-            current_frame_img = frames[current_frame_index]
+        if self.use_sprite and hasattr(self, 'animations'):
+            # Get current animation frame with safety checks
+            current_animation = self.animations.get(self.current_state, [self.sprite_img])
             
-            # Flip sprite based on direction
-            if self.current_direction == Direction.LEFT:
-                current_frame_img = pygame.transform.flip(current_frame_img, True, False)
+            # Safety check for animation frames
+            if current_animation and len(current_animation) > 0:
+                # Ensure current_frame is within bounds
+                safe_frame_index = min(self.current_frame, len(current_animation) - 1)
+                current_sprite = current_animation[safe_frame_index]
+            else:
+                # Fallback to base sprite
+                current_sprite = self.sprite_img
             
-            # Draw sprite at screen position
-            screen.blit(current_frame_img, (int(screen_pos_x), int(screen_pos_y)))
+            # Flip sprite based on facing direction
+            if self.facing == "left":
+                current_sprite = pygame.transform.flip(current_sprite, True, False)
+                
+            # Draw the animated sprite
+            screen.blit(current_sprite, (screen_x, screen_y))
+        elif self.use_sprite and hasattr(self, 'sprite_img'):
+            # Draw the static sprite
+            sprite_to_draw = self.sprite_img
+            if self.facing == "left":
+                sprite_to_draw = pygame.transform.flip(self.sprite_img, True, False)
+            screen.blit(sprite_to_draw, (screen_x, screen_y))
         else:
-            # Fallback to rectangle
+            # Draw player body as a rectangle
             pygame.draw.rect(screen, self.color, 
-                           (int(screen_pos_x), int(screen_pos_y), self.size[0], self.size[1]))
+                           (screen_x, screen_y, self.size, self.size))
+            
+            # Draw facing direction indicator
+            indicator_color = (255, 255, 255)  # White
+            if self.facing == "right":
+                pygame.draw.rect(screen, indicator_color,
+                               (screen_x + self.size - 4, screen_y + self.size//2 - 2, 4, 4))
+            else:  # facing left
+                pygame.draw.rect(screen, indicator_color,
+                               (screen_x, screen_y + self.size//2 - 2, 4, 4))
         
-        # Health bar (drawn relative to screen position)
-        bar_width = 32
-        bar_height = 5
-        health_percentage = max(0, min(1, self.stats.hp / self.stats.max_hp))
+        # Draw player name text above the player
+        if hasattr(self, 'name_text') and hasattr(self, 'name_text_rect'):
+            # Position the name text above the player in screen space
+            self.name_text_rect.centerx = screen_x + self.size // 2
+            self.name_text_rect.bottom = screen_y - 5
+            screen.blit(self.name_text, self.name_text_rect)
         
-        # Background of health bar
-        pygame.draw.rect(screen, (255, 0, 0), 
-                         (int(screen_pos_x), int(screen_pos_y) - 10, bar_width, bar_height))
-        # Foreground (current health)
-        pygame.draw.rect(screen, (0, 255, 0),
-                         (int(screen_pos_x), int(screen_pos_y) - 10, 
-                          int(bar_width * health_percentage), bar_height))
-        
-        # Draw job and level (drawn relative to screen position)
-        font = pygame.font.Font(None, 20)
-        text = font.render(f"{self.job} Lv.{self.level}", True, (255, 255, 255))
-        screen.blit(text, (int(screen_pos_x), int(screen_pos_y) - 25))
-    
     def add_item(self, item):
-        """Add an item to player's inventory"""
-        return self.inventory.add_item(item)
+        """Add an item to the player's inventory"""
+        self.inventory.add_item(item)
+        
+    def remove_item(self, item):
+        """Remove an item from the player's inventory"""
+        self.inventory.remove_item(item)
     
     def use_item(self, index):
         """Use an item at the given inventory slot"""

@@ -1,11 +1,6 @@
 import pygame
 from pygame import Surface, Rect
-
-# Assuming GameState and potentially other enums/constants are defined elsewhere
-# or passed in. For simplicity, define locally if not available.
-class GameState:
-    # Dummy states if not imported
-    pass 
+from .menu import GameState 
 
 class PauseMenu:
     def __init__(self, screen_width: int, screen_height: int):

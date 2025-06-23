@@ -1,0 +1,113 @@
+# Documentation-First Development Rules
+
+## Overview
+This rule set defines the documentation-first approach for the Runic Lands project.
+
+## Rules
+
+1. **Documentation Structure**
+   - All documentation must be in the `docs` directory
+   - Technical documentation goes in `docs/tech/`
+   - Game design docs go in `docs/design/`
+   - User guides go in `docs/guides/`
+
+2. **Documentation Process**
+   - Write documentation before implementing features
+   - Include clear examples and use cases
+   - Document error handling and edge cases
+   - Keep documentation up to date
+
+3. **Code Organization**
+   - Follow documented structure
+   - Use clear naming conventions
+   - Include proper comments
+   - Document public interfaces
+
+4. **Integration Steps**
+   - Document integration requirements
+   - List dependencies
+   - Provide setup instructions
+   - Include testing procedures
+
+5. **Testing and Debugging**
+   - Document test cases
+   - Include troubleshooting guides
+   - List common issues
+   - Provide debug tips
+
+## Best Practices
+
+1. **Documentation**
+   - Use Markdown format
+   - Include code examples
+   - Add diagrams when needed
+   - Keep it concise and clear
+
+2. **Code**
+   - Follow PEP 8 style
+   - Use type hints
+   - Document functions
+   - Include error handling
+
+3. **Testing**
+   - Write test documentation
+   - Include test cases
+   - Document test results
+   - Update docs with fixes
+
+4. **Maintenance**
+   - Review docs regularly
+   - Update with changes
+   - Remove outdated info
+   - Keep version history
+
+## Examples
+
+```python
+# Example of documented code
+def documented_function(param1: int, param2: str) -> bool:
+    """
+    Example function with proper documentation.
+    
+    Args:
+        param1: First parameter description
+        param2: Second parameter description
+        
+    Returns:
+        bool: Result description
+        
+    Raises:
+        ValueError: If parameters are invalid
+    """
+    try:
+        # Implementation
+        return True
+    except Exception as e:
+        raise ValueError(f"Error in documented_function: {e}")
+```
+
+## Implementation
+
+1. **Setup**
+   - Create docs directory
+   - Set up documentation structure
+   - Create template files
+   - Document project setup
+
+2. **Development**
+   - Write feature docs first
+   - Implement based on docs
+   - Update docs as needed
+   - Review and refine
+
+3. **Testing**
+   - Document test cases
+   - Run tests
+   - Update docs with results
+   - Fix and document issues
+
+4. **Maintenance**
+   - Regular doc reviews
+   - Update with changes
+   - Archive old versions
+   - Keep history clean 

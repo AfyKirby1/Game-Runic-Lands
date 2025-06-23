@@ -1,16 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, List
 import pygame
-
-@dataclass
-class Stats:
-    hp: int = 100
-    mp: int = 50
-    strength: int = 10
-    agility: int = 10
-    intelligence: int = 10
-    vitality: int = 10
-    speed: int = 5
+from systems.stats import Stats
     
 class Character:
     def __init__(self, x: int, y: int, color: tuple):
@@ -37,13 +28,17 @@ class Character:
     
     def level_up(self):
         self.level += 1
-        self.stats.hp += 5
-        self.stats.mp += 3
+        self.stats.max_hp += 5
+        self.stats.max_mp += 3
+        self.stats.hp = self.stats.max_hp  # Restore HP on level up
+        self.stats.mp = self.stats.max_mp  # Restore MP on level up
         # Base stat increases
         self.stats.strength += 2
         self.stats.agility += 2
         self.stats.intelligence += 2
         self.stats.vitality += 2
+        # Update derived stats
+        self.stats.update_derived_stats()
         
     def can_advance_job(self) -> bool:
         """Check if character meets requirements for job advancement"""
@@ -77,4 +72,11 @@ class Character:
         
         if self.job in bonuses:
             for stat, value in bonuses[self.job].items():
-                setattr(self.stats, stat, getattr(self.stats, stat) + value) 
+                if stat == "mp":
+                    # Handle MP bonus specially
+                    self.stats.max_mp += value
+                    self.stats.mp = self.stats.max_mp
+                else:
+                    setattr(self.stats, stat, getattr(self.stats, stat) + value)
+            # Update derived stats after applying bonuses
+            self.stats.update_derived_stats() 

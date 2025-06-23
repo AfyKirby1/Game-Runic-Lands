@@ -189,23 +189,31 @@ class SynapstexWorldGenerator:
         """Determine the biome type based on temperature, moisture, and elevation"""
         if elevation > self.biome_thresholds[BiomeType.MOUNTAINS]["elevation"]:
             if temp > self.biome_thresholds[BiomeType.VOLCANIC]["temp"]:
-                return BiomeType.VOLCANIC
-            return BiomeType.MOUNTAINS
-            
-        if temp < self.biome_thresholds[BiomeType.TUNDRA]["temp"]:
-            return BiomeType.TUNDRA
-            
-        if temp > self.biome_thresholds[BiomeType.DESERT]["temp"] and \
+                biome = BiomeType.VOLCANIC
+            else:
+                biome = BiomeType.MOUNTAINS
+        elif temp < self.biome_thresholds[BiomeType.TUNDRA]["temp"]:
+            biome = BiomeType.TUNDRA
+        elif temp > self.biome_thresholds[BiomeType.DESERT]["temp"] and \
            moisture < self.biome_thresholds[BiomeType.DESERT]["moisture"]:
-            return BiomeType.DESERT
+            biome = BiomeType.DESERT
+        elif moisture > self.biome_thresholds[BiomeType.SWAMP]["moisture"]:
+            biome = BiomeType.SWAMP
+        elif moisture > self.biome_thresholds[BiomeType.FOREST]["moisture"]:
+            biome = BiomeType.FOREST
+        else:
+            biome = BiomeType.PLAINS
             
-        if moisture > self.biome_thresholds[BiomeType.SWAMP]["moisture"]:
-            return BiomeType.SWAMP
+        # Debug logging for biome generation
+        if hasattr(self, '_debug_biome_count'):
+            self._debug_biome_count += 1
+        else:
+            self._debug_biome_count = 1
             
-        if moisture > self.biome_thresholds[BiomeType.FOREST]["moisture"]:
-            return BiomeType.FOREST
+        if self._debug_biome_count <= 5:  # Log first 5 biome decisions
+            print(f"DEBUG BIOME: temp={temp:.2f}, moist={moisture:.2f}, elev={elevation:.2f} -> {biome}")
             
-        return BiomeType.PLAINS
+        return biome
 
     def _generate_terrain(self, chunk: WorldChunk):
         """Generate terrain tiles based on biome and noise maps"""
@@ -232,21 +240,32 @@ class SynapstexWorldGenerator:
         """Determine terrain type based on biome and conditions"""
         # Original code restored - generate varied terrain instead of only grass
         if biome == BiomeType.MOUNTAINS and elevation > 0.7:
-            return TerrainType.STONE
+            terrain = TerrainType.STONE
         elif biome == BiomeType.DESERT:
-            return TerrainType.SAND
+            terrain = TerrainType.SAND
         elif biome == BiomeType.TUNDRA:
-            return TerrainType.SNOW
+            terrain = TerrainType.SNOW
         elif biome == BiomeType.VOLCANIC and elevation > 0.8:
-            return TerrainType.LAVA
+            terrain = TerrainType.LAVA
         elif biome == BiomeType.SWAMP and elevation < -0.2:
-            return TerrainType.WATER
+            terrain = TerrainType.WATER
         elif moisture > 0.6 and elevation < -0.3:
-            return TerrainType.WATER
+            terrain = TerrainType.WATER
         elif elevation < -0.4:
-            return TerrainType.DIRT
+            terrain = TerrainType.DIRT
         else:
-            return TerrainType.GRASS
+            terrain = TerrainType.GRASS
+            
+        # Debug logging for terrain generation
+        if hasattr(self, '_debug_terrain_count'):
+            self._debug_terrain_count += 1
+        else:
+            self._debug_terrain_count = 1
+            
+        if self._debug_terrain_count <= 10:  # Log first 10 terrain decisions
+            print(f"DEBUG TERRAIN: biome={biome}, elev={elevation:.2f}, temp={temperature:.2f}, moist={moisture:.2f} -> {terrain}")
+            
+        return terrain
 
     def _add_biome_features(self, chunk: WorldChunk):
         """Add biome-specific features like trees, rocks, etc."""

@@ -1,14 +1,36 @@
 @echo off
-cd /d "%~dp0"
-if exist .venv\Scripts\activate.bat (
-    call .venv\Scripts\activate.bat
-) else (
-    echo Virtual environment not found. Please set up the game first.
+echo 🎮 Starting Runic Lands...
+echo.
+
+REM Check if Python is available
+python --version >nul 2>&1
+if errorlevel 1 (
+    echo ❌ Python is not installed or not in PATH
+    echo Please install Python 3.7+ from https://python.org
     pause
     exit /b 1
 )
-python main.py
+
+REM Check if pygame is installed
+python -c "import pygame" >nul 2>&1
 if errorlevel 1 (
-    echo Game crashed. Please check the error message above.
+    echo ❌ Pygame is not installed
+    echo Installing pygame...
+    pip install pygame
+    if errorlevel 1 (
+        echo ❌ Failed to install pygame
+        pause
+        exit /b 1
+    )
+)
+
+REM Launch the game
+echo ✅ Starting Runic Lands...
+python main.py
+
+REM Keep window open if there was an error
+if errorlevel 1 (
+    echo.
+    echo ❌ Game exited with an error
     pause
 ) 

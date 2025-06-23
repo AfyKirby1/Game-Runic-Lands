@@ -1,0 +1,8 @@
+# Note: matplotlib is no longer required as of v1.3.0 (audio system update)
+pygame>=2.5.0
+pytmx==3.32
+pyscroll==2.31
+pillow==11.1.0
+scipy==1.15.2
+numpy==2.2.4
+opensimplex>=0.4.5 

@@ -1,0 +1,83 @@
+# Cursor Rule: Directory Structure Management
+
+## Overview
+Maintain a consistent and organized directory structure for the project. Create necessary directories before adding files.
+
+## Rules
+
+1. **Directory Creation**
+   - Create directories before adding files
+   - Use consistent naming conventions
+   - Keep related files together
+   - Document directory structure
+
+2. **Directory Structure**
+   ```
+   project/
+   ├── assets/
+   │   ├── audio/
+   │   ├── images/
+   │   └── shaders/
+   ├── docs/
+   │   ├── tech/
+   │   └── user/
+   ├── scenes/
+   ├── systems/
+   │   ├── effects/
+   │   └── ...
+   └── main.py
+   ```
+
+3. **Directory Verification**
+   - Check if directories exist before use
+   - Create missing directories automatically
+   - Log directory creation
+   - Handle errors gracefully
+
+4. **Documentation**
+   - Document directory structure
+   - Explain directory purposes
+   - List required directories
+   - Update when structure changes
+
+## Implementation
+
+```python
+import os
+from pathlib import Path
+
+def ensure_directories():
+    """Create required directories if they don't exist."""
+    directories = [
+        'scenes',
+        'systems/effects',
+        'docs/tech',
+        'docs/user',
+        'assets/audio',
+        'assets/images',
+        'assets/shaders'
+    ]
+    
+    for directory in directories:
+        Path(directory).mkdir(parents=True, exist_ok=True)
+```
+
+## Best Practices
+
+1. **Organization**
+   - Group related files
+   - Use clear naming
+   - Maintain hierarchy
+   - Document structure
+
+2. **Maintenance**
+   - Update structure documentation
+   - Clean up unused directories
+   - Verify directory existence
+   - Handle errors properly
+
+3. **Documentation**
+   - Document directory purposes
+   - List required directories
+   - Explain organization
+   - Update when changed

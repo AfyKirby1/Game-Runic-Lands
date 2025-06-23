@@ -1,0 +1,51 @@
+2025-06-22 19:45:53,427 - INFO - root - Logging initialized. Log file: logs\game_log_20250622_194553.txt
+2025-06-22 19:45:53,428 - INFO - root - Pygame initialized, setting up logger.
+2025-06-22 19:45:53,429 - INFO - root - Loaded sound: assets\audio\menu_click.wav
+2025-06-22 19:45:53,430 - INFO - root - Loaded sound: assets\audio\menu_select.wav
+2025-06-22 19:45:53,431 - INFO - root - Loaded sound: assets\audio\attack.wav
+2025-06-22 19:45:53,431 - INFO - systems.options - No settings file found, using defaults
+2025-06-22 19:45:53,431 - INFO - systems.options - Options system initialized successfully
+2025-06-22 19:45:53,542 - INFO - root - Game initialized successfully
+2025-06-22 19:45:56,322 - INFO - root - Initializing single-player mode...
+2025-06-22 19:45:56,323 - DEBUG - root - Clearing render layers...
+2025-06-22 19:45:56,323 - DEBUG - root - Render layers cleared.
+2025-06-22 19:45:56,323 - DEBUG - root - Menu particles cleared.
+2025-06-22 19:45:56,323 - DEBUG - root - Creating world...
+2025-06-22 19:45:56,950 - DEBUG - root - World created with seed: 577126
+2025-06-22 19:45:56,950 - DEBUG - root - Combat system initialized.
+2025-06-22 19:45:56,950 - DEBUG - root - Using centered spawn point: (16, 16)
+2025-06-22 19:45:56,950 - DEBUG - root - Player controls retrieved.
+2025-06-22 19:45:56,951 - INFO - entities.player - Looking for sprite at: assets/sprites/characters/player/png/base_wanderer.png
+2025-06-22 19:45:56,951 - INFO - entities.player - Sprite found, loading it
+2025-06-22 19:45:56,953 - DEBUG - root - Player entity created.
+2025-06-22 19:45:56,954 - DEBUG - root - Game state initialized.
+2025-06-22 19:45:56,954 - DEBUG - root - World and player added to render layers.
+2025-06-22 19:45:56,954 - DEBUG - root - Particle system bounds set to 2048x2048
+2025-06-22 19:45:56,970 - INFO - root - Single-player mode initialized successfully.
+2025-06-22 19:45:58,970 - ERROR - root - Unhandled exception
+Traceback (most recent call last):
+  File "C:\Users\AI\OneDrive\Desktop\AI Random\GIP-GamesInProgress\Runic_Lands\systems\synapstex.py", line 1156, in render_all
+    drawable.draw(screen, offset)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\AI\OneDrive\Desktop\AI Random\GIP-GamesInProgress\Runic_Lands\entities\player.py", line 188, in draw
+    current_sprite = current_animation[self.current_frame] if current_animation else self.sprite_img
+                     ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\AI\OneDrive\Desktop\AI Random\GIP-GamesInProgress\Runic_Lands\main.py", line 837, in <module>
+    game.run()
+    ~~~~~~~~^^
+  File "C:\Users\AI\OneDrive\Desktop\AI Random\GIP-GamesInProgress\Runic_Lands\main.py", line 345, in run
+    self.draw()
+    ~~~~~~~~~^^
+  File "C:\Users\AI\OneDrive\Desktop\AI Random\GIP-GamesInProgress\Runic_Lands\main.py", line 308, in draw
+    self.graphics.render_all(self.screen)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\AI\OneDrive\Desktop\AI Random\GIP-GamesInProgress\Runic_Lands\systems\synapstex.py", line 1166, in render_all
+    print(f"Error drawing {type(drawable)}: {e}", exc_info=True)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: print() got an unexpected keyword argument 'exc_info'
+2025-06-22 19:45:58,978 - INFO - root - Crash report saved to logs\crash_20250622_194553.txt

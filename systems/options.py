@@ -1,7 +1,7 @@
 import pygame
 import json
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 from pathlib import Path
 import logging
 
@@ -58,41 +58,138 @@ DEFAULT_VIDEO = {
 class OptionsSystem:
     """Manages game settings including keybindings and audio settings"""
     
-    def __init__(self, config_file='config/options.json'):
-        """Initialize the options system"""
-        # Add music tracking variables
-        self.current_track = None
-        self.next_track = None
-        self.music_queue = []
-        self.music_end_event = pygame.USEREVENT + 1
-        pygame.mixer.music.set_endevent(self.music_end_event)
-        
-        # Initialize default values
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+        self.settings_file = Path("settings.json")
+        self.default_settings = {
+            'screen_size': (800, 600),
+            'fps': 60,
+            'volume': 0.5,
+            'fullscreen': False,
+            'vsync': True
+        }
+        self.settings = self.default_settings.copy()
         self.keybinds = DEFAULT_KEYBINDS.copy()
         self.audio = DEFAULT_AUDIO.copy()
-        self.video = DEFAULT_VIDEO.copy()
-        
-        # Initialize sound system
-        pygame.mixer.init()
         self.sounds = {}
-        self.music = None
-        
-        # Create config directory if it doesn't exist
-        self.config_dir = Path.home() / ".runiclands"
-        self.config_dir.mkdir(exist_ok=True)
-        
-        # Set callback for video changes (unified)
-        self.video_change_callback = None # Initialize the attribute
-        
-        # Load settings from file, if it exists
-        self.load_settings()
-        
-        # Load sound effects
-        self._load_sound_effects()
-        
-        # Apply volume settings
-        self.set_volume('master_volume', self.audio['master_volume'])
+        self.music_queue = []
+        self.current_track = None
+        self.next_track = None
+        self.music_end_event = pygame.USEREVENT + 1
+        pygame.mixer.music.set_endevent(self.music_end_event)
+        self.initialize()
+
+    def initialize(self):
+        """Initialize the options system."""
+        try:
+            self.load_settings()
+            self.logger.info("Options system initialized successfully")
+        except Exception as e:
+            self.logger.error(f"Error initializing options system: {e}")
+            self.settings = self.default_settings.copy()
+            self.save_settings()
+
+    def load_settings(self):
+        """Load settings from file."""
+        try:
+            if self.settings_file.exists():
+                with open(self.settings_file, 'r') as f:
+                    loaded_data = json.load(f)
+                    loaded_settings = {k: v for k, v in loaded_data.items() if k != 'keybinds' and k != 'audio'}
+                    loaded_keybinds = loaded_data.get('keybinds', {})
+                    loaded_audio = loaded_data.get('audio', {})
+
+                    # Convert screen_size from list to tuple
+                    if 'screen_size' in loaded_settings:
+                        loaded_settings['screen_size'] = tuple(loaded_settings['screen_size'])
+                    self.settings.update(loaded_settings)
+
+                    # Update keybinds from loaded data
+                    # Deep update to handle nested player dictionaries
+                    for player, binds in loaded_keybinds.items():
+                        if player in self.keybinds:
+                            self.keybinds[player].update(binds)
+                        else:
+                            self.keybinds[player] = binds
+
+                    # Update audio settings
+                    self.audio.update(loaded_audio)
+
+                self.logger.info("Settings loaded successfully")
+            else:
+                self.logger.info("No settings file found, using defaults")
+        except Exception as e:
+            self.logger.error(f"Error loading settings: {e}")
+            self.settings = self.default_settings.copy()
+
+    def save_settings(self):
+        """Save current settings to file."""
+        try:
+            # Combine settings, keybinds, and audio for saving
+            data_to_save = self.settings.copy()
+            data_to_save['keybinds'] = self.keybinds
+            data_to_save['audio'] = self.audio
+            with open(self.settings_file, 'w') as f:
+                json.dump(data_to_save, f, indent=4)
+            self.logger.info("Settings saved successfully")
+        except Exception as e:
+            self.logger.error(f"Error saving settings: {e}")
+
+    def get_screen_size(self) -> Tuple[int, int]:
+        """Get the current screen size setting."""
+        return self.settings['screen_size']
+
+    def set_screen_size(self, width: int, height: int):
+        """Set the screen size setting."""
+        self.settings['screen_size'] = (width, height)
+        self.save_settings()
+
+    def get_fps(self) -> int:
+        """Get the current FPS setting."""
+        return self.settings['fps']
+
+    def set_fps(self, fps: int):
+        """Set the FPS setting."""
+        self.settings['fps'] = fps
+        self.save_settings()
+
+    def get_volume(self) -> float:
+        """Get the current volume setting."""
+        return self.settings['volume']
+
+    def set_volume(self, volume: float):
+        """Set the volume setting."""
+        self.settings['volume'] = max(0.0, min(1.0, volume))
+        self.save_settings()
+
+    def get_fullscreen(self) -> bool:
+        """Get the current fullscreen setting."""
+        return self.settings['fullscreen']
+
+    def set_fullscreen(self, fullscreen: bool):
+        """Set the fullscreen setting."""
+        self.settings['fullscreen'] = fullscreen
+        self.save_settings()
+
+    def get_vsync(self) -> bool:
+        """Get the current vsync setting."""
+        return self.settings['vsync']
     
+    def get_setting(self, key: str):
+        """Get a setting value by key - compatibility method."""
+        return self.settings.get(key)
+
+    def set_vsync(self, vsync: bool):
+        """Set the vsync setting."""
+        self.settings['vsync'] = vsync
+        self.save_settings()
+
+    def reset_to_defaults(self):
+        """Reset all settings to default values."""
+        self.settings = self.default_settings.copy()
+        self.save_settings()
+        self.logger.info("Settings reset to defaults")
+
     def _load_sound_effects(self):
         """Load sound effects into memory"""
         sound_files = {
@@ -176,229 +273,120 @@ class OptionsSystem:
             return music_file
 
     def play_music(self, music_file, loop=True, queue=False):
-        """Play background music with dynamic volume"""
+        """Play a music file with error handling"""
+        if not music_file:
+            return False
+            
+        if not pygame.mixer.get_init():
+            return False
+            
+        # Check for enhanced version of the music file
+        enhanced_file = self._get_enhanced_version(music_file)
+        if enhanced_file:
+            music_file = enhanced_file
+            print(f"Using enhanced music: {music_file}")
+            
+        # Track timing for debugging
+        request_time = pygame.time.get_ticks()
+        print(f"DEBUG: Music request - {music_file} at {request_time} ms")
+        
         try:
-            if pygame.mixer and pygame.mixer.get_init():
-                # Time tracking for performance
-                start_time = pygame.time.get_ticks()
-                print(f"DEBUG: Music request - {music_file} at {start_time} ms")
-                
-                # Check if we should try to use enhanced version
-                enhanced_file = self._get_enhanced_version(music_file)
-                print(f"Using music file: {enhanced_file}")
-                
-                # If we want to queue this music
-                if queue:
-                    if enhanced_file not in self.music_queue:
-                        self.music_queue.append(enhanced_file)
-                        print(f"DEBUG: Added to queue - {os.path.basename(enhanced_file)}")
-                    return True
-                    
-                # If music is already playing, we need to handle differently
-                if pygame.mixer.music.get_busy():
-                    # If it's the same track, do nothing
-                    if self.current_track == os.path.basename(enhanced_file):
-                        return True
-                    
-                    # If we want to queue instead of stopping current music
-                    if not loop and self.next_track is None:
-                        try:
-                            # Use pygame's built-in queue function to eliminate gaps
-                            pygame.mixer.music.queue(enhanced_file)
-                            self.next_track = os.path.basename(enhanced_file)
-                            print(f"DEBUG: Music queued for gapless playback - {self.next_track}")
-                            return True
-                        except Exception as e:
-                            print(f"Error queuing music: {e}, falling back to standard playback")
-                            # Continue with standard playback if queue fails
-                    
-                    # Stop the current music and play the new one
-                    pygame.mixer.music.stop()
-                    print(f"DEBUG: Music stopped - {getattr(self, 'current_track', 'unknown')}")
-                
-                # Ensure audio is preloaded
-                load_start = pygame.time.get_ticks()
-                
-                # Track current track for debugging
-                self.current_track = os.path.basename(enhanced_file)
-                
-                try:
-                    # Load the music file
-                    pygame.mixer.music.load(enhanced_file)
-                    load_end = pygame.time.get_ticks()
-                    print(f"DEBUG: Music file loaded in {load_end - load_start} ms")
-                    
-                    # Use -1 for infinite loop, 0 for no loop, or specific count
-                    loop_count = -1 if loop else 0
-                    
-                    # Start playing
-                    play_start = pygame.time.get_ticks()
-                    pygame.mixer.music.play(loop_count)
-                    play_end = pygame.time.get_ticks()
-                    
-                    # Apply volume settings
-                    self.apply_audio_settings()
-                    print(f"DEBUG: Music started - {self.current_track} in {play_end - play_start} ms")
-                    
-                    # If we have a queue, set up the next track with gapless playback
-                    if not loop and len(self.music_queue) > 0:
-                        next_track = self.music_queue[0]  # Peek but don't remove yet
-                        try:
-                            # Use pygame's built-in queue function to eliminate gaps
-                            queue_start = pygame.time.get_ticks()
-                            pygame.mixer.music.queue(next_track)
-                            queue_end = pygame.time.get_ticks()
-                            
-                            self.next_track = os.path.basename(next_track)
-                            print(f"DEBUG: Next track queued in {queue_end - queue_start} ms - {self.next_track}")
-                        except Exception as e:
-                            print(f"Error queuing next track: {e}")
-                            # We'll fall back to event-based handling if queue fails
-                            self.next_track = self.music_queue.pop(0)
-                            print(f"DEBUG: Next track ready (fallback method) - {os.path.basename(self.next_track)}")
-                    
-                    # Report total time
-                    end_time = pygame.time.get_ticks()
-                    print(f"DEBUG: Total music setup time: {end_time - start_time} ms")
-                    return True
-                except Exception as e:
-                    print(f"Error loading enhanced music '{enhanced_file}': {e}")
-                    # Try original version as fallback if we had been using enhanced
-                    if enhanced_file != music_file:
-                        try:
-                            pygame.mixer.music.load(music_file)
-                            loop_count = -1 if loop else 0
-                            pygame.mixer.music.play(loop_count)
-                            self.apply_audio_settings()
-                            # Track current track for debugging
-                            self.current_track = os.path.basename(music_file)
-                            print(f"DEBUG: Music started (fallback) - {self.current_track}")
-                            return True
-                        except Exception as e2:
-                            print(f"Error loading original music '{music_file}': {e2}")
-                            return False
-                    return False
-            else:
-                print("DEBUG: Mixer not initialized, skipping music playback")
+            print(f"Using music file: {music_file}")
+            
+            # Check if file exists
+            if not os.path.exists(music_file):
+                print(f"ERROR: Music file not found: {music_file}")
                 return False
+                
+            load_start = pygame.time.get_ticks()
+            # Only attempt direct load if not queuing
+            if not queue:
+                if pygame.mixer.music.get_busy() and not loop:
+                    pygame.mixer.music.stop()
+                pygame.mixer.music.load(music_file)
+                
+                # Register end event for music
+                pygame.mixer.music.set_endevent(pygame.USEREVENT + 1)
+                
+                load_time = pygame.time.get_ticks() - load_start
+                print(f"DEBUG: Music file loaded in {load_time} ms")
+                
+                # Save current track info
+                self.current_track = os.path.basename(music_file)
+                
+                play_start = pygame.time.get_ticks()
+                loop_count = -1 if loop else 0  # -1 means loop indefinitely
+                pygame.mixer.music.play(loop_count)
+                play_time = pygame.time.get_ticks() - play_start
+                
+                print(f"DEBUG: Music started - {os.path.basename(music_file)} in {play_time} ms")
+                print(f"DEBUG: Total music setup time: {pygame.time.get_ticks() - request_time} ms")
+                
+                # Apply volume (consider mute status)
+                effective_volume = 0.0 if self.audio.get('is_muted', False) else (
+                    self.audio.get('music_volume', 0.5) * self.audio.get('master_volume', 0.7))
+                pygame.mixer.music.set_volume(effective_volume)
+                
+                return True
+            else:
+                # Try to queue music
+                if pygame.mixer.music.get_busy():
+                    print(f"Queuing next section: {os.path.basename(music_file)}")
+                    pygame.mixer.music.queue(music_file)
+                    return True
+                else:
+                    # If not currently playing, start playing
+                    pygame.mixer.music.load(music_file)
+                    pygame.mixer.music.set_endevent(pygame.USEREVENT + 1)
+                    self.current_track = os.path.basename(music_file)
+                    pygame.mixer.music.play(0)  # Don't loop, music will be queued
+                    effective_volume = 0.0 if self.audio.get('is_muted', False) else (
+                        self.audio.get('music_volume', 0.5) * self.audio.get('master_volume', 0.7))
+                    pygame.mixer.music.set_volume(effective_volume)
+                    return True
         except Exception as e:
-            print(f"Error in play_music: {e}")
+            print(f"Error playing music: {e}")
             return False
 
     def handle_music_event(self, event):
         """Handle music end event to play the next track if available"""
-        if event.type == self.music_end_event:
-            print(f"DEBUG: Music ended - {getattr(self, 'current_track', 'unknown')} at {pygame.time.get_ticks()} ms")
+        
+        # Music has ended, play the next track in the queue
+        if hasattr(self, 'music_queue') and self.music_queue:
+            next_track = self.music_queue.pop(0)
             
-            # Important: Process this immediately to prevent delays
-            # Update current track if we had pre-queued the next track
-            if self.next_track:
-                prev_track = self.current_track
-                self.current_track = self.next_track
-                self.next_track = None
-                print(f"DEBUG: Switched to pre-queued track {self.current_track} at {pygame.time.get_ticks()} ms")
+            try:
+                # Play the next track without looping
+                pygame.mixer.music.load(next_track)
+                pygame.mixer.music.set_endevent(pygame.USEREVENT + 1)
+                pygame.mixer.music.play(0)  # No loop, we'll queue the next one
                 
-                # If we had used pygame.mixer.music.queue(), remove that track from our queue
-                if len(self.music_queue) > 0 and os.path.basename(self.music_queue[0]) == self.current_track:
-                    self.music_queue.pop(0)
+                # Update tracking
+                self.current_track = os.path.basename(next_track)
                 
-                # Check if this is a game section
-                is_game_section = self.current_track.startswith("game_section")
-                
-                if is_game_section:
-                    # Get all available game section files
-                    base_path = "assets/audio/game/"
-                    all_sections = [
-                        f"{base_path}game_section1.wav",
-                        f"{base_path}game_section2.wav",
-                        f"{base_path}game_section3.wav",
-                        f"{base_path}game_section4.wav",
-                        f"{base_path}game_section5.wav",
-                        f"{base_path}game_section6.wav",
-                        f"{base_path}game_section7.wav",
-                        f"{base_path}game_section8.wav",
-                        f"{base_path}game_section9.wav",
-                        f"{base_path}game_section10.wav",
-                    ]
-                else:
-                    # Get all available menu section files
-                    base_path = "assets/audio/"
-                    all_sections = [
-                        f"{base_path}menu_section1.wav",
-                        f"{base_path}menu_section2.wav",
-                        f"{base_path}menu_section3.wav",
-                        f"{base_path}menu_section4.wav",
-                        f"{base_path}menu_section5.wav",
-                        f"{base_path}menu_section6.wav",
-                        f"{base_path}menu_section7.wav",
-                        f"{base_path}menu_section8.wav",
-                        f"{base_path}menu_section9.wav",
-                        f"{base_path}menu_section10.wav",
-                    ]
-                
-                # Find existing sections
-                existing_sections = [s for s in all_sections if os.path.exists(s)]
-                if not existing_sections:
-                    print("ERROR: No section files found!")
-                    return False
-                
-                # Find current section index
-                current_basename = self.current_track
-                current_path = f"{base_path}{current_basename}"
-                try:
-                    current_index = existing_sections.index(current_path)
-                except ValueError:
-                    # If not found, assume it's the first section
-                    current_index = 0
-                
-                # Calculate next section index (with wraparound)
-                next_index = (current_index + 1) % len(existing_sections)
-                next_section = existing_sections[next_index]
-                
-                # Always queue the next section in the sequence
-                try:
-                    # Use pygame's built-in queue function for gapless playback
-                    pygame.mixer.music.queue(next_section)
-                    self.next_track = os.path.basename(next_section)
-                    print(f"DEBUG: Next track queued for gapless playback - {self.next_track}")
-                    
-                    # If our queue is empty, rebuild it to maintain the sequence
-                    if len(self.music_queue) == 0:
-                        # Add remaining sections to queue, starting from next+1
-                        for i in range(len(existing_sections)):
-                            idx = (next_index + 1 + i) % len(existing_sections)
-                            self.music_queue.append(existing_sections[idx])
-                        print(f"DEBUG: Rebuilt music queue with {len(self.music_queue)} sections")
-                    
-                    return True
-                except Exception as e:
-                    print(f"Error queuing next track: {e}, falling back to standard method")
-                    if is_game_section:
-                        self._rebuild_game_section_queue(current_basename)
-                    else:
-                        self._rebuild_section_queue(current_basename)
-                    return self._play_next_track_now()
+                # Apply volume
+                effective_volume = 0.0 if self.audio.get('is_muted', False) else (
+                    self.audio.get('music_volume', 0.5) * self.audio.get('master_volume', 0.7))
+                pygame.mixer.music.set_volume(effective_volume)
                 
                 return True
+            except Exception as e:
+                print(f"ERROR: Failed to play next track: {e}")
+                return False
+        else:
+            # Queue is empty, restart the appropriate music sequence
+            print(f"DEBUG: Music sequence completed, restarting seamless loop")
             
-            # Use our new helper method for immediate playback
-            print(f"DEBUG: No pre-queued track, using immediate playback at {pygame.time.get_ticks()} ms")
-            
-            # Check if current track is a game section
+            # Check if current track is a game section or menu section
             is_game_section = False
             if hasattr(self, 'current_track') and self.current_track:
                 is_game_section = self.current_track.startswith("game_section")
-            
-            # Rebuild the queue first based on music type
-            if is_game_section:
-                self._rebuild_game_section_queue(getattr(self, 'current_track', ''))
-            else:
-                self._rebuild_section_queue(getattr(self, 'current_track', ''))
                 
-            return self._play_next_track_now()
-            
-        return False
-        
+            if is_game_section:
+                return self.queue_game_music()
+            else:
+                return self.start_seamless_menu_music()
+
     def _rebuild_section_queue(self, current_track=None):
         """Rebuild the music queue based on the current track"""
         # Clear existing queue
@@ -785,31 +773,79 @@ class OptionsSystem:
             # Create a seamless sequence of all sections
             base_path = "assets/audio/"
             
+            # Define all menu sections
+            all_menu_sections = [
+                f"{base_path}menu_section1.wav",
+                f"{base_path}menu_section2.wav",
+                f"{base_path}menu_section3.wav",
+                f"{base_path}menu_section4.wav",
+                f"{base_path}menu_section5.wav",
+                f"{base_path}menu_section6.wav",
+                f"{base_path}menu_section7.wav",
+                f"{base_path}menu_section8.wav",
+                f"{base_path}menu_section9.wav",
+                f"{base_path}menu_section10.wav",
+            ]
+            
+            # Get existing sections
+            existing_sections = [s for s in all_menu_sections if os.path.exists(s)]
+            
+            if not existing_sections:
+                print("ERROR: No menu sections available")
+                return False
+            
             # Determine starting section based on time of day if datetime is available
             try:
                 import datetime
                 current_hour = datetime.datetime.now().hour
                 if 18 <= current_hour or current_hour <= 6:  # Evening/night (6PM-6AM)
-                    first_section = f"{base_path}menu_section5.wav"  # Start with misty woods at night
-                    start_index = 5
+                    first_section_name = "menu_section5.wav"  # Start with misty woods at night
                 else:
-                    first_section = f"{base_path}menu_section1.wav"  # Start with heroic intro during day
-                    start_index = 1
-            except ImportError:
-                # Fallback if datetime not available
-                first_section = f"{base_path}menu_section1.wav"
-                start_index = 1
-            
-            # Check for existence of sections
-            if not os.path.exists(first_section):
-                print(f"Error: Missing first section file: {first_section}")
-                return False
+                    first_section_name = "menu_section1.wav"  # Start with heroic intro during day
                 
-            # Start with the determined first section
-            self.play_music(first_section, loop=False)
+                # Make sure the chosen section exists, otherwise use first available
+                first_section = f"{base_path}{first_section_name}"
+                if not os.path.exists(first_section):
+                    first_section = existing_sections[0]
+            except (ImportError, IndexError):
+                # Fallback if datetime not available or no sections found
+                if existing_sections:
+                    first_section = existing_sections[0]
+                else:
+                    print("ERROR: No menu sections available")
+                    return False
             
-            # Build a queue of all sections, starting from the next one in sequence
-            return self._rebuild_section_queue(os.path.basename(first_section))
+            # Start with the determined first section
+            print(f"Starting menu music with section: {os.path.basename(first_section)}")
+            pygame.mixer.music.load(first_section)
+            pygame.mixer.music.play(0)  # No loop - we'll queue the next track
+            
+            # Update current track
+            self.current_track = os.path.basename(first_section)
+            
+            # Apply volume
+            effective_volume = 0.0 if self.audio.get('is_muted', False) else (
+                self.audio.get('music_volume', 0.5) * self.audio.get('master_volume', 0.7))
+            pygame.mixer.music.set_volume(effective_volume)
+            
+            # If only one section exists, we're done (it will loop automatically)
+            if len(existing_sections) == 1:
+                print(f"Only one menu section exists, looping it")
+                pygame.mixer.music.play(-1)  # Loop indefinitely
+                return True
+            
+            # Queue all remaining sections in order
+            current_index = existing_sections.index(first_section)
+            for i in range(1, len(existing_sections)):
+                next_index = (current_index + i) % len(existing_sections)
+                next_section = existing_sections[next_index]
+                print(f"Queueing next section: {os.path.basename(next_section)}")
+                pygame.mixer.music.queue(next_section)
+            
+            # Set up the event for when a track ends
+            pygame.mixer.music.set_endevent(pygame.USEREVENT + 1)
+            
+            return True
             
         except Exception as e:
             print(f"Error in queue_section_music: {e}")
@@ -980,74 +1016,6 @@ class OptionsSystem:
             self.keybinds[player][action] = key
             self.save_settings()
     
-    def save_settings(self):
-        """Save settings to a file"""
-        config_file = self.config_dir / "settings.json"
-        
-        # We need to convert pygame key constants to their integer values
-        serializable_keybinds = {}
-        for player, binds in self.keybinds.items():
-            serializable_keybinds[player] = {}
-            for action, key in binds.items():
-                serializable_keybinds[player][action] = key
-        
-        settings = {
-            'keybinds': serializable_keybinds,
-            'audio': self.audio,
-            'video': self.video
-        }
-        
-        try:
-            with open(config_file, 'w') as f:
-                json.dump(settings, f, indent=4)
-        except Exception as e:
-            print(f"Failed to save settings: {e}")
-    
-    def load_settings(self):
-        """Load settings from the settings file"""
-        config_file = self.config_dir / "settings.json"
-        
-        if config_file.exists():
-            try:
-                with open(config_file, 'r') as f:
-                    settings = json.load(f)
-                
-                # Load keybindings
-                if 'keybinds' in settings:
-                    for player, binds in settings['keybinds'].items():
-                        if player in self.keybinds:
-                            for action, key in binds.items():
-                                if action in self.keybinds[player]:
-                                    self.keybinds[player][action] = int(key)
-                
-                # Load audio settings
-                if 'audio' in settings:
-                    for setting, value in settings['audio'].items():
-                        if setting in self.audio:
-                            self.audio[setting] = float(value)
-                
-                # Load video settings safely
-                video_config = settings.get("video", {})
-                self.video["fullscreen"] = video_config.get("fullscreen", DEFAULT_VIDEO['fullscreen'])
-                # Ensure resolution is a tuple
-                loaded_res = video_config.get("resolution", DEFAULT_VIDEO['resolution'])
-                self.video["resolution"] = tuple(loaded_res) if isinstance(loaded_res, list) else loaded_res
-                self.video["vsync"] = video_config.get("vsync", DEFAULT_VIDEO['vsync'])
-                self.video["gui_scale"] = float(video_config.get("gui_scale", DEFAULT_VIDEO['gui_scale']))
-                self.video["particles_enabled"] = video_config.get("particles_enabled", DEFAULT_VIDEO['particles_enabled'])
-                            
-            except Exception as e:
-                print(f"Failed to load settings, using defaults: {e}")
-                # If loading fails, merge defaults with potentially partial load
-                default_video = DEFAULT_VIDEO.copy()
-                default_video.update(self.video) # Keep already loaded values
-                self.video = default_video
-                # Similar logic for audio/keybinds might be needed
-                self.save_settings() # Save corrected/default settings
-        else:
-             # If file doesn't exist, save defaults
-             self.save_settings()
-
     def apply_audio_settings(self):
         if pygame.mixer.get_init():
             try:
@@ -1336,3 +1304,146 @@ class OptionsSystem:
             
         print("\n=== END GAME MUSIC ANALYSIS ===\n")
         return len(existing_sections) > 0 
+
+    def _analyze_menu_music_files(self):
+        """Analyze menu music files specifically for menu music system"""
+        print("\n=== MENU MUSIC FILE ANALYSIS ===\n")
+        
+        # Define menu section paths and check which ones exist
+        base_path = "assets/audio/"
+        all_menu_sections = [
+            f"{base_path}menu_section1.wav",  # Heroic Intro
+            f"{base_path}menu_section2.wav",  # Calm Town-like Section
+            f"{base_path}menu_section3.wav",  # Energetic Battle-like Section
+            f"{base_path}menu_section4.wav",  # Resolving Passage
+            f"{base_path}menu_section5.wav",  # Misty Woods Intro
+            f"{base_path}menu_section6.wav",
+            f"{base_path}menu_section7.wav",
+            f"{base_path}menu_section8.wav",
+            f"{base_path}menu_section9.wav",
+            f"{base_path}menu_section10.wav",
+        ]
+        
+        # Check which files exist
+        print("File existence check:")
+        existing_sections = []
+        for section in all_menu_sections:
+            status = "EXISTS" if os.path.exists(section) else "MISSING"
+            print(f"  {section}: {status}")
+            if os.path.exists(section):
+                existing_sections.append(section)
+        
+        # Count existing sections
+        print(f"\nFound {len(existing_sections)} of {len(all_menu_sections)} menu music sections")
+        
+        # Check fallback theme files
+        fallback_paths = [
+            "assets/audio/menu_theme.wav",
+            "assets/audio/enhanced_menu_theme.wav"
+        ]
+        
+        print("\nFallback theme check:")
+        for path in fallback_paths:
+            status = "EXISTS" if os.path.exists(path) else "MISSING"
+            print(f"  {path}: {status}")
+            
+        # Try to analyze actual durations if wave module is available
+        try:
+            import wave
+            print("\nDuration analysis:")
+            for section in existing_sections:
+                try:
+                    with wave.open(section, 'rb') as w:
+                        # Calculate duration in seconds
+                        frames = w.getnframes()
+                        rate = w.getframerate()
+                        duration = frames / rate
+                        print(f"  {section}: {duration:.2f} seconds ({frames} frames @ {rate} Hz)")
+                except Exception as e:
+                    print(f"  {section}: ERROR analyzing - {e}")
+                    
+            # Check fallback themes
+            for path in fallback_paths:
+                if os.path.exists(path):
+                    try:
+                        with wave.open(path, 'rb') as w:
+                            frames = w.getnframes()
+                            rate = w.getframerate()
+                            duration = frames / rate
+                            print(f"  {path}: {duration:.2f} seconds ({frames} frames @ {rate} Hz)")
+                    except Exception as e:
+                        print(f"  {path}: ERROR analyzing - {e}")
+        except ImportError:
+            print("\nCould not analyze durations (wave module not available)")
+            
+        print("\n=== END MENU MUSIC ANALYSIS ===\n")
+        return len(existing_sections) > 0 
+
+    def start_seamless_menu_music(self):
+        """Start seamless menu music that properly loops through all sections"""
+        try:
+            # Clear any existing queue and state
+            self.next_track = None
+            self.music_queue = []
+            
+            # Stop any currently playing music
+            pygame.mixer.music.stop()
+            
+            # Define all menu sections in proper order
+            base_path = "assets/audio/"
+            all_menu_sections = [
+                f"{base_path}menu_section1.wav",   # Heroic Intro
+                f"{base_path}menu_section2.wav",   # Calm Town-like Section  
+                f"{base_path}menu_section3.wav",   # Energetic Battle-like Section
+                f"{base_path}menu_section4.wav",   # Mystical Bridge
+                f"{base_path}menu_section5.wav",   # Misty Woods Intro
+                f"{base_path}menu_section6.wav",   # Descending Arpeggio
+                f"{base_path}menu_section7.wav",   # Wave Pattern
+                f"{base_path}menu_section8.wav",   # Cascading
+                f"{base_path}menu_section9.wav",   # Mountain
+                f"{base_path}menu_section10.wav",  # Wandering
+            ]
+            
+            # Filter to only existing sections
+            existing_sections = [s for s in all_menu_sections if os.path.exists(s)]
+            
+            if not existing_sections:
+                print("ERROR: No menu sections available for seamless playback")
+                return False
+            
+            print(f"Found {len(existing_sections)} menu sections for seamless playback")
+            
+            # Start with the first section
+            first_section = existing_sections[0]
+            print(f"Starting seamless menu music loop with {len(existing_sections)} sections")
+            
+            # Load and play the first section
+            pygame.mixer.music.load(first_section)
+            pygame.mixer.music.set_endevent(pygame.USEREVENT + 1)
+            pygame.mixer.music.play(0)  # Play once, no loop
+            
+            # Update tracking
+            self.current_track = os.path.basename(first_section)
+            
+            # Apply volume
+            effective_volume = 0.0 if self.audio.get('is_muted', False) else (
+                self.audio.get('music_volume', 0.5) * self.audio.get('master_volume', 0.7))
+            pygame.mixer.music.set_volume(effective_volume)
+            
+            # Build complete queue for seamless looping
+            # Add all remaining sections to the queue
+            for i in range(1, len(existing_sections)):
+                self.music_queue.append(existing_sections[i])
+            
+            # Add the first section back to the end to create a seamless loop
+            self.music_queue.append(existing_sections[0])
+            
+            # Add another complete cycle for extra resilience
+            for section in existing_sections:
+                self.music_queue.append(section)
+            
+            return True
+            
+        except Exception as e:
+            print(f"ERROR: Failed to start seamless menu music: {e}")
+            return False
