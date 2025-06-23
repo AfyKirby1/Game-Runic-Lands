@@ -1,0 +1,58 @@
+# Runic Lands - Git Ignore File
+
+# World Generation Files (Generated during gameplay)
+world/
+world/chunks/
+world/chunks/*.json
+
+# Python Cache Files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Game Logs
+logs/
+*.log
+
+# Save Files
+saves/
+*.save
+
+# Audio Cache (if any)
+audio_cache/
+
+# Temporary Files
+*.tmp
+*.temp
+.temp/
+
+# IDE Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Development Testing Files
+test_*.py
+debug_*.py
+temp_*.py
+
+# Compiled Game Assets (if any)
+*.pyc
+build/
+dist/
+
+# Local Configuration
+config.local
+settings.local
+
+# Performance Profiling
+*.prof
+*.pstats 
