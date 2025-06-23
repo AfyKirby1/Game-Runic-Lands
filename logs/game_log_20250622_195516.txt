@@ -1,8 +1,0 @@
-2025-06-22 19:55:16,900 - INFO - root - Logging initialized. Log file: logs\game_log_20250622_195516.txt
-2025-06-22 19:55:16,901 - INFO - root - Pygame initialized, setting up logger.
-2025-06-22 19:55:16,902 - INFO - root - Loaded sound: assets\audio\menu_click.wav
-2025-06-22 19:55:16,904 - INFO - root - Loaded sound: assets\audio\menu_select.wav
-2025-06-22 19:55:16,905 - INFO - root - Loaded sound: assets\audio\attack.wav
-2025-06-22 19:55:16,906 - INFO - systems.options - No settings file found, using defaults
-2025-06-22 19:55:16,906 - INFO - systems.options - Options system initialized successfully
-2025-06-22 19:55:16,965 - INFO - root - Game initialized successfully
