@@ -20,6 +20,7 @@ python main.py
 ### 🔧 **Recent Fixes (Phase 3)**
 - **✅ Visual Rendering**: Ground terrain now renders properly with camera following player
 - **✅ Grass Ground Bug**: Fixed TerrainType enum mismatch that prevented grass tiles from rendering
+- **✅ Repository Cleanup**: Added .gitignore to exclude generated world chunks and logs from version control
 - **✅ World Borders**: Bold black boundaries clearly show world edges  
 - **✅ Camera System**: Smooth player tracking with proper offset calculations
 - **✅ Player Boundaries**: No more disappearing at world edges - proper collision detection
