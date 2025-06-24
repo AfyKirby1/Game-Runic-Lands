@@ -11,13 +11,17 @@ __pycache__/
 *$py.class
 *.so
 
-# Game Logs
+# Game Logs (Improved patterns)
 logs/
 *.log
+save_manager.log
+game_log_*.txt
 
 # Save Files
 saves/
 *.save
+*.sav
+*.meta
 
 # Audio Cache (if any)
 audio_cache/
@@ -43,6 +47,7 @@ desktop.ini
 test_*.py
 debug_*.py
 temp_*.py
+fix_*.py
 
 # Compiled Game Assets (if any)
 *.pyc
@@ -55,4 +60,19 @@ settings.local
 
 # Performance Profiling
 *.prof
-*.pstats 
+*.pstats
+
+# Additional cleanup patterns
+*.backup
+*.bak
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+venv/
+.venv/
+env/
+.env
+ENV/
+env.bak/
+venv.bak/ 
