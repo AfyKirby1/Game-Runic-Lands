@@ -71,11 +71,13 @@ class OptionsSystem:
         self.settings = self.default_settings.copy()
         self.keybinds = DEFAULT_KEYBINDS.copy()
         self.audio = DEFAULT_AUDIO.copy()
+        self.video = DEFAULT_VIDEO.copy()  # Add missing video settings
         self.sounds = {}
         self.music_queue = []
         self.current_track = None
         self.next_track = None
         self.music_end_event = pygame.USEREVENT + 1
+        self.music_player_active = False  # Flag to track if music player is controlling playback
         pygame.mixer.music.set_endevent(self.music_end_event)
         self.initialize()
 
@@ -95,9 +97,10 @@ class OptionsSystem:
             if self.settings_file.exists():
                 with open(self.settings_file, 'r') as f:
                     loaded_data = json.load(f)
-                    loaded_settings = {k: v for k, v in loaded_data.items() if k != 'keybinds' and k != 'audio'}
+                    loaded_settings = {k: v for k, v in loaded_data.items() if k not in ['keybinds', 'audio', 'video']}
                     loaded_keybinds = loaded_data.get('keybinds', {})
                     loaded_audio = loaded_data.get('audio', {})
+                    loaded_video = loaded_data.get('video', {})
 
                     # Convert screen_size from list to tuple
                     if 'screen_size' in loaded_settings:
@@ -114,6 +117,9 @@ class OptionsSystem:
 
                     # Update audio settings
                     self.audio.update(loaded_audio)
+                    
+                    # Update video settings
+                    self.video.update(loaded_video)
 
                 self.logger.info("Settings loaded successfully")
             else:
@@ -125,10 +131,11 @@ class OptionsSystem:
     def save_settings(self):
         """Save current settings to file."""
         try:
-            # Combine settings, keybinds, and audio for saving
+            # Combine settings, keybinds, audio, and video for saving
             data_to_save = self.settings.copy()
             data_to_save['keybinds'] = self.keybinds
             data_to_save['audio'] = self.audio
+            data_to_save['video'] = self.video
             with open(self.settings_file, 'w') as f:
                 json.dump(data_to_save, f, indent=4)
             self.logger.info("Settings saved successfully")
@@ -350,6 +357,10 @@ class OptionsSystem:
 
     def handle_music_event(self, event):
         """Handle music end event to play the next track if available"""
+        
+        # If music player is active, don't handle automatic music events
+        if getattr(self, 'music_player_active', False):
+            return False
         
         # Music has ended, play the next track in the queue
         if hasattr(self, 'music_queue') and self.music_queue:

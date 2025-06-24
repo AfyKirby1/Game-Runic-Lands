@@ -173,6 +173,8 @@ class Game:
             self.players = []
             self.pause_menu = None
             self.inventory_ui = None
+            self.options_menu = None  # Add options menu instance
+            self.previous_state = None  # Track previous state for options menu
             
             self.logger.info("Game initialized successfully")
             
@@ -196,7 +198,10 @@ class Game:
                 if action == "play":
                     self.start_new_game(GameState.SINGLE_PLAYER)
                 elif action == "options":
+                    self.previous_state = self.current_state
                     self.current_state = "options"
+                    # Initialize options menu when entering options from main menu
+                    self.options_menu = OptionsMenu(self.screen.get_size(), self.options_system)
                 elif action == "quit":
                     return False
             elif self.current_state == "game":
@@ -232,7 +237,10 @@ class Game:
                             if self.pause_menu:
                                 self.pause_menu.toggle()  # Toggle visibility off
                         elif action == "options":
+                            self.previous_state = self.current_state
                             self.current_state = "options"
+                            # Initialize options menu when entering from pause menu
+                            self.options_menu = OptionsMenu(self.screen.get_size(), self.options_system)
                         elif action == "quit":
                             self.return_to_menu()
                 # Also handle mouse events for the pause menu
@@ -245,9 +253,24 @@ class Game:
                         if self.pause_menu:
                             self.pause_menu.toggle()  # Toggle visibility off
                     elif action == "options":
+                        self.previous_state = self.current_state
                         self.current_state = "options"
+                        # Initialize options menu when entering from pause menu
+                        self.options_menu = OptionsMenu(self.screen.get_size(), self.options_system)
                     elif action == "quit":
                         self.return_to_menu()
+            elif self.current_state == "options":
+                # Initialize options menu if it doesn't exist
+                if self.options_menu is None:
+                    self.options_menu = OptionsMenu(self.screen.get_size(), self.options_system)
+                
+                # Handle options menu input
+                result = self.options_menu.handle_input([event])
+                if result == 'exit_options':
+                    # Return to previous state (main_menu, pause, etc.)
+                    self.current_state = self.previous_state if self.previous_state else "main_menu"
+                    self.previous_state = None
+                    self.options_menu = None  # Clean up options menu
         return True
 
     def update(self):
@@ -337,6 +360,11 @@ class Game:
             
         elif self.current_state == "pause":
             pass
+        elif self.current_state == "options":
+            # Update options menu if it exists
+            if self.options_menu:
+                # Options menu doesn't need regular updates, just handle input
+                pass
 
     def draw(self):
         """Draw the current game state."""
@@ -375,6 +403,10 @@ class Game:
             # Then draw the pause menu on top
             if self.pause_menu and hasattr(self.pause_menu, 'is_visible') and self.pause_menu.is_visible:
                 self.pause_menu.draw(self.screen)
+        elif self.current_state == "options":
+            # Draw options menu
+            if self.options_menu:
+                self.options_menu.draw(self.screen)
             
         pygame.display.flip()
 
@@ -399,6 +431,8 @@ class Game:
             self.pause_menu.toggle()  # Make sure to hide it
         self.pause_menu = None  # Now destroy it
         self.inventory_ui = None
+        self.options_menu = None  # Clean up options menu
+        self.previous_state = None  # Reset previous state
         
         # Clear game particles to prevent bleeding into menu
         if hasattr(self.graphics, 'particle_system'):

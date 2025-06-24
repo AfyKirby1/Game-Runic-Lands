@@ -181,6 +181,8 @@ launch_game.bat                         # Auto-setup and launch
 
 | Issue | Solution |
 |-------|----------|
+| **Options Menu Hangs** | ✅ **FIXED** - Options menu integration & missing video settings |
+| **Music Player Crash** | ✅ **FIXED** - Resolved naming conflict & automatic music interference & escape navigation |
 | **Black Screen** | Fixed in Phase 3 - ensure latest version |
 | **No Grass Rendering** | Fixed TerrainType enum mismatch in Phase 3 |
 | **Audio Problems** | Check `assets/audio/` files and system volume |

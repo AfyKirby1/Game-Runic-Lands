@@ -199,10 +199,11 @@ class OptionsMenu:
         if self.state == OptionsMenuState.MUSIC_PLAYER and self.music_player.active:
             for event in events:
                 if self.music_player.handle_event(event):
-                    return self.state
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    self.music_player.deactivate()
-                    self.state = OptionsMenuState.AUDIO
+                    # If music player handled the event, check if it deactivated itself
+                    if not self.music_player.active:
+                        # Music player was deactivated (probably Escape key), return to audio menu
+                        self.state = OptionsMenuState.AUDIO
+                        return None
                     return self.state
             return self.state
         

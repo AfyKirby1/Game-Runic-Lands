@@ -17,7 +17,7 @@ class MusicPlayerSystem:
         self.current_index = 0  # Currently selected track index
         self.playing = False  # Is a track currently playing
         self.active = False  # Is the music player UI active
-        self.previous_track = None  # Track that was playing before entering player
+        self.previous_track_name = None  # Track that was playing before entering player
         self.font = None
         self.initialize_font()
         self.scan_music_files()
@@ -118,7 +118,7 @@ class MusicPlayerSystem:
         """Activate the music player UI"""
         if not self.active:
             # Store currently playing track
-            self.previous_track = self.options.current_track
+            self.previous_track_name = self.options.current_track
             
             # Store current end event and disable it
             self.previous_end_event = pygame.mixer.music.get_endevent()
@@ -129,6 +129,7 @@ class MusicPlayerSystem:
             self.options.stop_music()
             self.options.next_track = None
             self.options.music_queue = []
+            self.options.music_player_active = True  # Disable automatic music restart
             self.playing = False
             
             # Wait a brief moment to ensure playback has fully stopped
@@ -169,12 +170,15 @@ class MusicPlayerSystem:
                 pygame.mixer.music.set_endevent(self.options.music_end_event)
             
             # Restore previous music if any
-            if self.previous_track:
-                logger.info(f"Restoring previous music: {self.previous_track}")
-                if self.previous_track.startswith("game_section"):
+            if self.previous_track_name:
+                logger.info(f"Restoring previous music: {self.previous_track_name}")
+                if self.previous_track_name.startswith("game_section"):
                     self.options.queue_game_music()
                 else:
                     self.options.queue_section_music()
+            
+            # Re-enable automatic music system
+            self.options.music_player_active = False
             
             # Deactivate the player UI
             self.active = False
