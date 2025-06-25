@@ -1133,13 +1133,14 @@ class SynapstexGraphics:
         """Render all layers onto the screen, applying camera offset."""
         offset = self.get_camera_offset()
         
-        print(f"GRAPHICS DEBUG: Rendering {len(self.render_layers)} layers with offset {offset}")
+        # Remove excessive debug prints that spam the console every frame
+        # print(f"GRAPHICS DEBUG: Rendering {len(self.render_layers)} layers with offset {offset}")
         
         # Render layers in order
         for layer_type in RenderLayer:
             layer_objects = self.render_layers[layer_type]
-            if layer_objects:
-                print(f"GRAPHICS DEBUG: Rendering {layer_type} with {len(layer_objects)} objects")
+            # if layer_objects:
+            #     print(f"GRAPHICS DEBUG: Rendering {layer_type} with {len(layer_objects)} objects")
             
             if layer_type == RenderLayer.UI or layer_type == RenderLayer.UI_OVERLAY:
                  # Draw UI layers without camera offset
@@ -1159,7 +1160,7 @@ class SynapstexGraphics:
                  # Draw game world layers with camera offset
                  for i, drawable in enumerate(layer_objects):
                      if hasattr(drawable, 'draw'):
-                         print(f"GRAPHICS DEBUG: Drawing {type(drawable)} object {i+1}/{len(layer_objects)}")
+                         # print(f"GRAPHICS DEBUG: Drawing {type(drawable)} object {i+1}/{len(layer_objects)}")
                          try:
                              # Pass screen and offset
                              drawable.draw(screen, offset)

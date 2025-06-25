@@ -137,24 +137,49 @@ class Player(Character):
         self.running = keys[self.controls.get('run', pygame.K_LSHIFT)]
         speed = self.speed * (self.run_multiplier if self.running else 1.0)
         
+        # Track movement direction for animation
+        move_direction = None
+        
         if keys[self.controls['up']]:
             dy -= speed
+            move_direction = Direction.UP
         if keys[self.controls['down']]:
             dy += speed
+            move_direction = Direction.DOWN
         if keys[self.controls['left']]:
             dx -= speed
             self.facing = "left"
+            move_direction = Direction.LEFT
         if keys[self.controls['right']]:
             dx += speed
             self.facing = "right"
+            move_direction = Direction.RIGHT
             
         # Update movement state
         self.moving = dx != 0 or dy != 0
+        
+        # Update animation direction when moving
+        if self.moving and move_direction:
+            self.current_direction = move_direction
             
         # Normalize diagonal movement
         if dx != 0 and dy != 0:
             dx *= 0.7071  # 1/√2
             dy *= 0.7071
+            
+            # For diagonal movement, prioritize horizontal direction for animation
+            if abs(dx) > abs(dy):
+                if dx > 0:
+                    self.current_direction = Direction.RIGHT
+                    self.facing = "right"
+                else:
+                    self.current_direction = Direction.LEFT
+                    self.facing = "left"
+            else:
+                if dy > 0:
+                    self.current_direction = Direction.DOWN
+                else:
+                    self.current_direction = Direction.UP
             
         # Update position with delta time
         dt = 1/60  # Fixed time step for consistent movement
@@ -177,11 +202,24 @@ class Player(Character):
         
     def update(self, dt: float):
         """Update player state including animations"""
+        # Store previous state for change detection
+        prev_state = getattr(self, '_prev_state', None)
+        prev_direction = getattr(self, '_prev_direction', None)
+        
         # Update animation state based on movement
         if self.moving:
             self.current_state = AnimationState.WALKING
         else:
             self.current_state = AnimationState.IDLE
+            
+        # Log state changes for debugging
+        if prev_state != self.current_state:
+            logger.debug(f"Animation state changed: {prev_state} -> {self.current_state}")
+            self._prev_state = self.current_state
+            
+        if prev_direction != self.current_direction:
+            logger.debug(f"Animation direction changed: {prev_direction} -> {self.current_direction}")
+            self._prev_direction = self.current_direction
             
         # Update animation timer and frame
         if self.use_sprite and hasattr(self, 'animations'):
@@ -223,12 +261,25 @@ class Player(Character):
                 # Fallback to base sprite
                 current_sprite = self.sprite_img
             
-            # Flip sprite based on facing direction
-            if self.facing == "left":
-                current_sprite = pygame.transform.flip(current_sprite, True, False)
+            # Handle sprite flipping based on direction
+            sprite_to_draw = current_sprite
+            if self.current_direction == Direction.LEFT:
+                sprite_to_draw = pygame.transform.flip(current_sprite, True, False)
+            elif self.current_direction == Direction.RIGHT:
+                sprite_to_draw = current_sprite  # No flip needed for right
+            elif self.current_direction == Direction.UP:
+                sprite_to_draw = current_sprite  # Use base sprite for up movement
+            elif self.current_direction == Direction.DOWN:
+                sprite_to_draw = current_sprite  # Use base sprite for down movement
+            else:
+                # Fallback to old facing system for backwards compatibility
+                if self.facing == "left":
+                    sprite_to_draw = pygame.transform.flip(current_sprite, True, False)
+                else:
+                    sprite_to_draw = current_sprite
                 
             # Draw the animated sprite
-            screen.blit(current_sprite, (screen_x, screen_y))
+            screen.blit(sprite_to_draw, (screen_x, screen_y))
         elif self.use_sprite and hasattr(self, 'sprite_img'):
             # Draw the static sprite
             sprite_to_draw = self.sprite_img

@@ -34,10 +34,10 @@
         "is_muted": false
     },
     "video": {
-        "fullscreen": false,
+        "fullscreen": true,
         "resolution": [
-            800,
-            600
+            2560,
+            1440
         ],
         "vsync": true,
         "gui_scale": 1.0,

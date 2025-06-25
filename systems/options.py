@@ -78,6 +78,8 @@ class OptionsSystem:
         self.next_track = None
         self.music_end_event = pygame.USEREVENT + 1
         self.music_player_active = False  # Flag to track if music player is controlling playback
+        self.video_change_callback = None  # Initialize callback to prevent AttributeError
+        self.fullscreen_callback = None  # Initialize fullscreen callback to prevent AttributeError
         pygame.mixer.music.set_endevent(self.music_end_event)
         self.initialize()
 

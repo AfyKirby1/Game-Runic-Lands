@@ -153,6 +153,9 @@ class Game:
             # Set options system on graphics for access by other components
             self.graphics.options_system = self.options_system
             
+            # Set up video change callback to handle resolution and fullscreen changes
+            self.options_system.set_video_change_callback(self._handle_video_change)
+            
             # Initialize display (using the screen surface from graphics engine)
             self.screen = self.graphics._update_display() # Get screen from graphics
             pygame.display.set_caption("Runic Lands")
@@ -295,20 +298,6 @@ class Game:
                     player = self.players[0]
                     self.world.update_chunks(int(player.pos[0]), int(player.pos[1]))
                     
-                    # Debug: Log detailed chunk and world state (commented out to reduce spam)
-                    # if hasattr(self, '_detailed_debug_timer'):
-                    #     self._detailed_debug_timer += dt
-                    # else:
-                    #     self._detailed_debug_timer = 0
-                    #     
-                    # if self._detailed_debug_timer > 5.0:  # Every 5 seconds
-                    #     chunk_coords = []
-                    #     for chunk_key in self.world.loaded_chunks.keys():
-                    #         chunk_coords.append(str(chunk_key))
-                    #     self.logger.info(f"WORLD DEBUG: Player at ({player.pos[0]:.1f}, {player.pos[1]:.1f})")
-                    #     self.logger.info(f"WORLD DEBUG: {len(self.world.loaded_chunks)} chunks loaded: {', '.join(chunk_coords)}")
-                    #     self.logger.info(f"WORLD DEBUG: World size: {self.world.width}x{self.world.height}")
-                    #     self._detailed_debug_timer = 0
             if self.combat_system:
                 self.combat_system.update(dt, self.players)
             for player in self.players:
@@ -325,8 +314,6 @@ class Game:
                 
                 # Load initial chunks around player to ensure terrain is visible
                 self.world.update_chunks(int(player.pos[0]), int(player.pos[1]))
-                self.logger.debug(f"Initial chunks loaded around player at ({player.pos[0]}, {player.pos[1]})")
-                self.logger.debug(f"Loaded chunks count: {len(self.world.loaded_chunks)}")
                 
                 # Update UI elements position relative to camera
                 screen_width, screen_height = self.screen.get_size()
@@ -335,28 +322,6 @@ class Game:
                     name_x = screen_width // 2
                     name_y = (screen_height // 2) - 30
                     player.name_text_rect.center = (name_x, name_y)
-                
-            # Debug: Log chunk loading status periodically
-            if hasattr(self, '_chunk_debug_timer'):
-                self._chunk_debug_timer += dt
-            else:
-                self._chunk_debug_timer = 0
-                
-            if self._chunk_debug_timer > 2.0:  # Every 2 seconds
-                self.logger.debug(f"Player at ({player.pos[0]:.1f}, {player.pos[1]:.1f}), {len(self.world.loaded_chunks)} chunks loaded")
-                self._chunk_debug_timer = 0
-            
-            # Clear particles when transitioning to game
-            if not hasattr(self, '_particles_cleared'):
-                self.graphics.particle_system.particles.clear()
-                self._particles_cleared = True
-            
-            # Calculate camera offset (center on player)
-            camera_x = player.pos[0] - screen_width // 2
-            camera_y = player.pos[1] - screen_height // 2
-            
-            # NOTE: Screen drawing is handled in the draw() method, not here
-            # Removed duplicate screen.fill() and graphics.render_all() calls
             
         elif self.current_state == "pause":
             pass
@@ -421,24 +386,29 @@ class Game:
         pygame.quit()
 
     def return_to_menu(self):
-        """Return to the main menu."""
-        self.current_state = "main_menu"
-        self.world = None
-        self.combat_system = None
-        self.players = []
-        # Clean up pause menu
-        if self.pause_menu and hasattr(self.pause_menu, 'is_visible') and self.pause_menu.is_visible:
-            self.pause_menu.toggle()  # Make sure to hide it
-        self.pause_menu = None  # Now destroy it
-        self.inventory_ui = None
-        self.options_menu = None  # Clean up options menu
-        self.previous_state = None  # Reset previous state
-        
-        # Clear game particles to prevent bleeding into menu
-        if hasattr(self.graphics, 'particle_system'):
-            self.graphics.particle_system.particles.clear()
+        """Return to the main menu from game state."""
+        try:
+            self.current_state = "main_menu"
             
-        self.main_menu.cleanup()
+            # Stop any game music and start menu music
+            self.options_system.stop_music()
+            self.main_menu.start_menu_music()
+            
+            # Clean up game state
+            self.world = None
+            self.combat_system = None
+            self.players = []
+            self.pause_menu = None
+            self.inventory_ui = None
+            
+            # Clear any render layers that might be active
+            if self.graphics:
+                self.graphics.clear_render_layers()
+            
+            self.logger.info("Returned to main menu")
+            
+        except Exception as e:
+            self.logger.error(f"Error returning to menu: {e}")
 
     def start_new_game(self, mode=GameState.SINGLE_PLAYER):
         """Start a new game."""
@@ -474,9 +444,9 @@ class Game:
             spawn = self.world.get_centered_spawn()
             self.logger.debug(f"Using centered spawn point: {spawn}")
             
-            # Convert spawn point from tile coordinates to pixel coordinates
-            spawn_x = spawn[0] * 32  # Convert tile X to pixels
-            spawn_y = spawn[1] * 32  # Convert tile Y to pixels
+            # Spawn coordinates are already in pixels, no conversion needed
+            spawn_x = spawn[0]
+            spawn_y = spawn[1]
             
             controls = {
                 'up': self.options_system.get_keybind('player1', 'up'),
@@ -513,8 +483,6 @@ class Game:
                 
                 # Load initial chunks around player to ensure terrain is visible
                 self.world.update_chunks(int(player.pos[0]), int(player.pos[1]))
-                self.logger.debug(f"Initial chunks loaded around player at ({player.pos[0]}, {player.pos[1]})")
-                self.logger.debug(f"Loaded chunks count: {len(self.world.loaded_chunks)}")
             
             # Set up particle system for game world
             if hasattr(self.graphics, 'particle_system'):
@@ -912,6 +880,39 @@ class Game:
         # Start game music using sectioned approach
         if pygame.mixer.get_init():
             self.options_system.queue_game_music()
+
+    def _handle_video_change(self):
+        """Handle video setting changes like resolution and fullscreen"""
+        try:
+            # Get current video settings from options
+            if hasattr(self.options_system, 'video'):
+                new_resolution = self.options_system.video.get('resolution', (800, 600))
+                new_fullscreen = self.options_system.video.get('fullscreen', False)
+                new_vsync = self.options_system.video.get('vsync', True)
+            else:
+                # Fallback to old system
+                new_resolution = self.options_system.get_screen_size()
+                new_fullscreen = self.options_system.get_fullscreen()
+                new_vsync = self.options_system.get_vsync()
+            
+            # Update graphics engine with new settings
+            if self.graphics:
+                # Use the correct method names from SynapstexGraphics
+                self.graphics.set_screen_resolution(new_resolution[0], new_resolution[1])
+                self.graphics.set_fullscreen(new_fullscreen)
+                self.graphics.set_vsync(new_vsync)
+                
+                # Update the screen reference
+                self.screen = self.graphics._update_display()
+                
+                # If options menu is open, recreate it with new screen size
+                if self.current_state == "options" and self.options_menu:
+                    self.options_menu = OptionsMenu(self.screen.get_size(), self.options_system)
+                
+                self.logger.info(f"Video settings updated: {new_resolution}, fullscreen={new_fullscreen}, vsync={new_vsync}")
+                
+        except Exception as e:
+            self.logger.error(f"Error handling video change: {e}")
 
 if __name__ == "__main__":
     game = Game()
