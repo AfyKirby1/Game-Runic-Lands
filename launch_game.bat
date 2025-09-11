@@ -11,17 +11,20 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Check if pygame is installed
-python -c "import pygame" >nul 2>&1
+REM Check if all required dependencies are installed
+echo 🔍 Checking dependencies...
+python -c "import pygame, opensimplex, numpy, scipy, PIL, pytmx, pyscroll" >nul 2>&1
 if errorlevel 1 (
-    echo ❌ Pygame is not installed
-    echo Installing pygame...
-    pip install pygame
+    echo ❌ Some dependencies are missing
+    echo 📦 Installing all required packages...
+    pip install -r docs/requirements.txt
     if errorlevel 1 (
-        echo ❌ Failed to install pygame
+        echo ❌ Failed to install dependencies
+        echo 💡 Try running: pip install -r docs/requirements.txt
         pause
         exit /b 1
     )
+    echo ✅ Dependencies installed successfully
 )
 
 REM Launch the game
