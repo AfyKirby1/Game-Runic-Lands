@@ -5,4 +5,11 @@ pyscroll==2.31
 pillow==11.1.0
 scipy==1.15.2
 numpy==2.2.4
-opensimplex>=0.4.5 
+opensimplex>=0.4.5
+
+# Development and testing dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.0.0 

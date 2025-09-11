@@ -1,5 +1,5 @@
 import pygame
-from .character import Character
+from entities.character import Character
 from systems.sprite import CharacterSprite, AnimationState, Direction
 from systems.inventory import Inventory, ItemType
 from systems.stats import Stats

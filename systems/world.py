@@ -4,8 +4,8 @@ import random
 import math
 import os
 from typing import List, Tuple, Dict, Optional
-from .synapstex import ParticleType, RenderLayer, BlendMode
-from .world_generator import SynapstexWorldGenerator, WorldChunk, TerrainType
+from systems.synapstex import ParticleType, RenderLayer, BlendMode
+from systems.world_generator import SynapstexWorldGenerator, WorldChunk, TerrainType
 import logging
 from enum import Enum, auto
 

@@ -1,6 +1,6 @@
 import pygame
 from pygame import Surface, Rect
-from .menu import GameState 
+from systems.menu import GameState 
 
 class PauseMenu:
     def __init__(self, screen_width: int, screen_height: int):

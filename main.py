@@ -7,6 +7,7 @@ import time
 import random
 import os # Added os import
 import math
+from typing import Dict, List, Optional, Tuple, Any
 
 # Ensure the project root directory is on the Python path
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -29,7 +30,7 @@ from systems.save_manager import SaveManager, SaveCorruptionError, VersionMismat
 from scenes.main_menu import MainMenu
 
 # Set up logging
-def setup_logging():
+def setup_logging() -> logging.Logger:
     log_dir = Path("logs")
     log_dir.mkdir(exist_ok=True)
     
@@ -86,7 +87,7 @@ def setup_logging():
     logger.info(f"Logging initialized. Log file: {log_filename}")
     return logger
 
-def setup_audio():
+def setup_audio() -> Dict[str, Any]:
     """Initialize audio system with error handling."""
     try:
         pygame.mixer.init()
@@ -185,7 +186,7 @@ class Game:
             self.logger.error(f"Error during game initialization: {e}")
             raise
 
-    def handle_input(self):
+    def handle_input(self) -> bool:
         """Handle all input events."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -276,106 +277,191 @@ class Game:
                     self.options_menu = None  # Clean up options menu
         return True
 
-    def update(self):
-        """Update game state."""
-        dt = self.clock.tick(60) / 1000.0  # Convert to seconds
-        
-        if self.current_state == "main_menu":
-            self.main_menu.update(dt)
-        elif self.current_state == "game":
+    def update(self) -> None:
+        """Update game state with comprehensive error handling."""
+        try:
+            dt = self.clock.tick(60) / 1000.0  # Convert to seconds
+            
+            if self.current_state == "main_menu":
+                self.main_menu.update(dt)
+            elif self.current_state == "game":
+                self._update_game_state(dt)
+            elif self.current_state == "pause":
+                pass
+            elif self.current_state == "options":
+                # Update options menu if it exists
+                if self.options_menu:
+                    # Options menu doesn't need regular updates, just handle input
+                    pass
+        except Exception as e:
+            self.logger.error(f"Error in game update: {e}", exc_info=True)
+            # Try to recover gracefully
+            try:
+                self.return_to_menu()
+            except Exception as recovery_error:
+                self.logger.error(f"Failed to recover from update error: {recovery_error}", exc_info=True)
+    
+    def _update_game_state(self, dt: float) -> None:
+        """Update game state with error handling for each component."""
+        try:
             # Get keyboard state for player movement
             keys = pygame.key.get_pressed()
             
             # Update player movement based on keyboard input
             if self.players:
-                self.players[0].move(keys)
+                try:
+                    self.players[0].move(keys)
+                except Exception as e:
+                    self.logger.error(f"Error updating player movement: {e}")
             
             # Update world and entities
             if self.world:
-                self.world.update(dt, self.graphics)
-                # Update chunks around player position
-                if self.players:
-                    player = self.players[0]
-                    self.world.update_chunks(int(player.pos[0]), int(player.pos[1]))
-                    
+                try:
+                    self.world.update(dt, self.graphics)
+                    # Update chunks around player position
+                    if self.players:
+                        player = self.players[0]
+                        self.world.update_chunks(int(player.pos[0]), int(player.pos[1]))
+                except Exception as e:
+                    self.logger.error(f"Error updating world: {e}")
+                        
             if self.combat_system:
-                self.combat_system.update(dt, self.players)
+                try:
+                    self.combat_system.update(dt, self.players)
+                except Exception as e:
+                    self.logger.error(f"Error updating combat system: {e}")
+            
             for player in self.players:
-                player.update(dt)
+                try:
+                    player.update(dt)
+                except Exception as e:
+                    self.logger.error(f"Error updating player {player}: {e}")
             
             # Center camera on player - convert player position to pixel coordinates
             if self.players and self.graphics:
-                player = self.players[0]
-                # Convert player position to pixel coordinates and center camera
-                self.graphics.set_camera_target(
-                    player.pos[0],  # Player positions are already in pixels
-                    player.pos[1]
-                )
-                
-                # Load initial chunks around player to ensure terrain is visible
-                self.world.update_chunks(int(player.pos[0]), int(player.pos[1]))
-                
-                # Update UI elements position relative to camera
-                screen_width, screen_height = self.screen.get_size()
-                if hasattr(player, 'name_text'):
-                    # Position name above player
-                    name_x = screen_width // 2
-                    name_y = (screen_height // 2) - 30
-                    player.name_text_rect.center = (name_x, name_y)
-            
-        elif self.current_state == "pause":
-            pass
-        elif self.current_state == "options":
-            # Update options menu if it exists
-            if self.options_menu:
-                # Options menu doesn't need regular updates, just handle input
-                pass
+                try:
+                    player = self.players[0]
+                    # Convert player position to pixel coordinates and center camera
+                    self.graphics.set_camera_target(
+                        player.pos[0],  # Player positions are already in pixels
+                        player.pos[1]
+                    )
+                    
+                    # Load initial chunks around player to ensure terrain is visible
+                    if self.world:
+                        self.world.update_chunks(int(player.pos[0]), int(player.pos[1]))
+                    
+                    # Update UI elements position relative to camera
+                    screen_width, screen_height = self.screen.get_size()
+                    if hasattr(player, 'name_text'):
+                        # Position name above player
+                        name_x = screen_width // 2
+                        name_y = (screen_height // 2) - 30
+                        player.name_text_rect.center = (name_x, name_y)
+                except Exception as e:
+                    self.logger.error(f"Error updating camera/UI: {e}")
+        except Exception as e:
+            self.logger.error(f"Error in game state update: {e}", exc_info=True)
 
-    def draw(self):
-        """Draw the current game state."""
-        if self.current_state == "main_menu":
-            self.main_menu.draw(self.screen)
-        elif self.current_state == "game":
+    def draw(self) -> None:
+        """Draw the current game state with error handling."""
+        try:
+            if self.current_state == "main_menu":
+                self.main_menu.draw(self.screen)
+            elif self.current_state == "game":
+                self._draw_game_state()
+            elif self.current_state == "pause":
+                self._draw_pause_state()
+            elif self.current_state == "options":
+                self._draw_options_state()
+            
+            pygame.display.flip()
+        except Exception as e:
+            self.logger.error(f"Error in draw method: {e}", exc_info=True)
+            # Try to draw a basic error screen
+            try:
+                self.screen.fill((255, 0, 0))  # Red background for error
+                font = pygame.font.Font(None, 36)
+                error_text = font.render("Rendering Error - Check Logs", True, (255, 255, 255))
+                text_rect = error_text.get_rect(center=(self.screen.get_size()[0] // 2, self.screen.get_size()[1] // 2))
+                self.screen.blit(error_text, text_rect)
+                pygame.display.flip()
+            except Exception as draw_error:
+                self.logger.error(f"Failed to draw error screen: {draw_error}")
+    
+    def _draw_game_state(self) -> None:
+        """Draw game state with error handling for each component."""
+        try:
             self.screen.fill((0, 0, 0))
             
             # Use the graphics engine's proper rendering system
             if self.graphics:
-                self.graphics.render_all(self.screen)
+                try:
+                    self.graphics.render_all(self.screen)
+                except Exception as e:
+                    self.logger.error(f"Error in graphics rendering: {e}")
             
             # Draw UI elements that need to be on top
             if self.players:
-                player = self.players[0]
-                # Draw player name and level (UI overlay)
-                font = pygame.font.Font(None, 24)
-                name_text = font.render(f"{player.name} Lv.{player.level}", True, (255, 255, 255))
-                name_rect = name_text.get_rect(center=(self.screen.get_size()[0] // 2, 30))
-                self.screen.blit(name_text, name_rect)
+                try:
+                    player = self.players[0]
+                    # Draw player name and level (UI overlay)
+                    font = pygame.font.Font(None, 24)
+                    name_text = font.render(f"{player.name} Lv.{player.level}", True, (255, 255, 255))
+                    name_rect = name_text.get_rect(center=(self.screen.get_size()[0] // 2, 30))
+                    self.screen.blit(name_text, name_rect)
+                except Exception as e:
+                    self.logger.error(f"Error drawing player UI: {e}")
             
             # Draw inventory if open
             if self.inventory_ui:
-                self.inventory_ui.draw(self.screen)
+                try:
+                    self.inventory_ui.draw(self.screen)
+                except Exception as e:
+                    self.logger.error(f"Error drawing inventory: {e}")
             
             # Draw control hints and world time
-            self._draw_control_hints()
-            self._draw_world_time()
-            
-        elif self.current_state == "pause":
+            try:
+                self._draw_control_hints()
+                self._draw_world_time()
+            except Exception as e:
+                self.logger.error(f"Error drawing UI elements: {e}")
+        except Exception as e:
+            self.logger.error(f"Error in game state drawing: {e}", exc_info=True)
+    
+    def _draw_pause_state(self) -> None:
+        """Draw pause state with error handling."""
+        try:
             # First, use graphics engine to draw the game world underneath
             self.screen.fill((0, 0, 0))
             if self.graphics:
-                self.graphics.render_all(self.screen)
+                try:
+                    self.graphics.render_all(self.screen)
+                except Exception as e:
+                    self.logger.error(f"Error drawing world in pause: {e}")
             
             # Then draw the pause menu on top
             if self.pause_menu and hasattr(self.pause_menu, 'is_visible') and self.pause_menu.is_visible:
-                self.pause_menu.draw(self.screen)
-        elif self.current_state == "options":
+                try:
+                    self.pause_menu.draw(self.screen)
+                except Exception as e:
+                    self.logger.error(f"Error drawing pause menu: {e}")
+        except Exception as e:
+            self.logger.error(f"Error in pause state drawing: {e}", exc_info=True)
+    
+    def _draw_options_state(self) -> None:
+        """Draw options state with error handling."""
+        try:
             # Draw options menu
             if self.options_menu:
-                self.options_menu.draw(self.screen)
-            
-        pygame.display.flip()
+                try:
+                    self.options_menu.draw(self.screen)
+                except Exception as e:
+                    self.logger.error(f"Error drawing options menu: {e}")
+        except Exception as e:
+            self.logger.error(f"Error in options state drawing: {e}", exc_info=True)
 
-    def run(self):
+    def run(self) -> None:
         """Main game loop."""
         running = True
         while running:

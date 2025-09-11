@@ -44,13 +44,8 @@ Create a dedicated state management system to handle transitions between differe
 # src/systems/state_manager.py
 from enum import Enum, auto
 
-class GameState(Enum):
-    MAIN_MENU = auto()
-    PLAYING = auto()
-    PAUSED = auto()
-    INVENTORY = auto()
-    OPTIONS = auto()
-    GAME_OVER = auto()
+# Note: GameState is already defined in systems/menu.py
+# This is just an example of how state management could be improved
 
 class StateManager:
     def __init__(self, game):
