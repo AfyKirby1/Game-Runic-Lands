@@ -51,10 +51,10 @@ class ModernWorld:
     
     def __init__(self, config: Optional[WorldConfig] = None, seed: Optional[int] = None):
         self.config = config or WorldConfig()
-        self.seed = seed if seed is not None else random.randint(0, 999999)
+        self._seed = seed if seed is not None else random.randint(0, 999999)
         
         # Initialize systems
-        self.generator = ModernWorldGenerator(self.seed)
+        self.generator = ModernWorldGenerator(self._seed)
         self.tree_renderer = ModernTreeRenderer(RenderConfig(
             tile_size=self.config.tile_size,
             wind_strength=self.config.wind_strength
@@ -73,9 +73,9 @@ class ModernWorld:
         self.wind_time = 0.0
         
         # Time system
-        self.minutes = 0
-        self.hours = self.config.start_hour
-        self.days = 1
+        self._minutes = 0
+        self._hours = self.config.start_hour
+        self._days = 1
         
         # Day/night system
         self.day_night_system = None  # Will be initialized separately
@@ -90,12 +90,12 @@ class ModernWorld:
         """Update world state including time, wind, and particles."""
         try:
             # Update time
-            self.minutes += dt * self.config.minutes_per_second
-            if self.minutes >= 60:
-                self.minutes = 0
-                self.hours = (self.hours + 1) % 24
-                if self.hours == 0:
-                    self.days += 1
+            self._minutes += dt * self.config.minutes_per_second
+            if self._minutes >= 60:
+                self._minutes = 0
+                self._hours = (self._hours + 1) % 24
+                if self._hours == 0:
+                    self._days += 1
             
             # Update wind
             self.wind_time += dt
@@ -374,7 +374,7 @@ class ModernWorld:
     
     def get_world_time(self) -> Tuple[int, int, int]:
         """Get current world time (hours, minutes, days)."""
-        return (self.hours, int(self.minutes), self.days)
+        return (self._hours, int(self._minutes), self._days)
     
     def cleanup(self):
         """Clean up resources."""
@@ -384,3 +384,66 @@ class ModernWorld:
         self.collision_rects.clear()
         self.grass_blades.clear()
         logger.info("World cleanup completed")
+    
+    # Compatibility methods for old World class interface
+    @property
+    def seed(self) -> int:
+        """Get world seed for compatibility."""
+        return self._seed
+    
+    @property
+    def width(self) -> int:
+        """Get world width in tiles for compatibility."""
+        return self.config.world_width
+    
+    @property
+    def height(self) -> int:
+        """Get world height in tiles for compatibility."""
+        return self.config.world_height
+    
+    @property
+    def hours(self) -> int:
+        """Get current hour for compatibility."""
+        return self._hours
+    
+    @property
+    def minutes(self) -> float:
+        """Get current minutes for compatibility."""
+        return self._minutes
+    
+    @property
+    def spawn_points(self) -> List[Tuple[int, int]]:
+        """Get spawn points for compatibility."""
+        # Generate spawn points in the center of the world
+        center_x = self.config.world_width // 2
+        center_y = self.config.world_height // 2
+        return [(center_x, center_y), (center_x + 1, center_y + 1)]
+    
+    @spawn_points.setter
+    def spawn_points(self, value: List[Tuple[int, int]]):
+        """Set spawn points for compatibility (no-op in modern system)."""
+        pass
+    
+    @property
+    def graphics(self) -> Optional[SynapstexGraphics]:
+        """Get graphics reference for compatibility."""
+        return getattr(self, '_graphics', None)
+    
+    @graphics.setter
+    def graphics(self, value: SynapstexGraphics):
+        """Set graphics reference for compatibility."""
+        self._graphics = value
+    
+    def get_centered_spawn(self) -> Tuple[int, int]:
+        """Get centered spawn point for compatibility."""
+        center_x = self.config.world_width // 2
+        center_y = self.config.world_height // 2
+        return (center_x, center_y)
+    
+    def init_grass(self):
+        """Initialize grass for compatibility (already done in constructor)."""
+        pass
+    
+    def _generate_tile_variations(self, chunk):
+        """Generate tile variations for compatibility (no-op in modern system)."""
+        pass

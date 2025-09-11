@@ -19,7 +19,7 @@ import pygame
 from enum import Enum, auto
 from entities.player import Player
 from systems.combat import CombatSystem
-from systems.world import World
+from systems.world_modern import ModernWorld
 from systems.menu import MenuSystem, GameState
 from systems.options import OptionsSystem
 from systems.options_menu import OptionsMenu, OptionsMenuState
@@ -520,7 +520,7 @@ class Game:
                 
             # Create a new world or load existing if needed
             self.logger.debug("Creating world...")
-            self.world = World(seed=random.randint(0, 999999))
+            self.world = ModernWorld(seed=random.randint(0, 999999))
             self.world.graphics = self.graphics
             self.logger.debug(f"World created with seed: {self.world.seed}")
             self.combat_system = CombatSystem()
@@ -593,7 +593,7 @@ class Game:
         for layer in RenderLayer:
             self.graphics.clear_layer(layer)
             
-        self.world = World(seed=random.randint(0, 999999))  # Use random seed for world generation
+        self.world = ModernWorld(seed=random.randint(0, 999999))  # Use random seed for world generation
         self.world.graphics = self.graphics
         self.combat_system = CombatSystem()
         spawn1, spawn2 = self.world.spawn_points
@@ -731,7 +731,7 @@ class Game:
             
             # Load world
             world_data = game_state.get("world", {})
-            self.world = World(seed=world_data.get("seed", 0))
+            self.world = ModernWorld(seed=world_data.get("seed", 0))
             self.world.spawn_points = world_data.get("spawn_points", self.world.spawn_points)
             
             # Load chunks
@@ -925,7 +925,7 @@ class Game:
             self.graphics.clear_layer(layer)
         
         # Create world
-        self.world = World(seed=random.randint(0, 999999))
+        self.world = ModernWorld(seed=random.randint(0, 999999))
         self.graphics.add_to_layer(RenderLayer.TERRAIN, self.world)
         
         # Set particle system world bounds based on world size
