@@ -453,3 +453,14 @@ class ModernWorld:
     def _generate_tile_variations(self, chunk):
         """Generate tile variations for compatibility (no-op in modern system)."""
         pass
+    
+    def get_day_phase(self) -> str:
+        """Get current day phase for compatibility."""
+        if 6 <= self._hours < 12:
+            return "morning"
+        elif 12 <= self._hours < 18:
+            return "day"
+        elif 18 <= self._hours < 22:
+            return "evening"
+        else:
+            return "night"
