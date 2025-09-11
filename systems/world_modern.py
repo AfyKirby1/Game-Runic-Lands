@@ -105,8 +105,9 @@ class ModernWorld:
             self._update_grass(dt)
             
             # Emit particles if graphics available
-            if graphics and random.random() < 0.01:  # 1% chance per frame
-                self._emit_environmental_particles(graphics)
+            # TODO: Fix particle emission when SynapstexGraphics supports it
+            # if graphics and random.random() < 0.01:  # 1% chance per frame
+            #     self._emit_environmental_particles(graphics)
                 
         except Exception as e:
             logger.error(f"Error updating world: {e}", exc_info=True)
@@ -410,6 +411,11 @@ class ModernWorld:
     def minutes(self) -> float:
         """Get current minutes for compatibility."""
         return self._minutes
+    
+    @property
+    def days(self) -> int:
+        """Get current days for compatibility."""
+        return self._days
     
     @property
     def spawn_points(self) -> List[Tuple[int, int]]:
