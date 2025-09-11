@@ -20,7 +20,10 @@ from utils.generators import (
     generate_idle_animation,
     generate_walking_animation,
     generate_attack_animation,
-    COLORS
+    generate_custom_character,
+    generate_random_character,
+    COLORS,
+    CHARACTER_SETTINGS
 )
 
 # Configure logging
@@ -170,6 +173,51 @@ class SpriteGenerator:
             self.stats["errors"] += 1
             return False
     
+    def generate_custom_sprites(self, skin_tone: str = "skin_medium", hair_color: str = "hair_brown", 
+                               shirt_color: str = "clothing_brown", pants_color: str = "clothing_gray", 
+                               shoes_color: str = "clothing_black", eye_color: str = "eye_brown",
+                               hair_style: str = "medium", gender: str = "male", age: str = "adult",
+                               force: bool = False) -> bool:
+        """Generate custom character sprites with specified appearance"""
+        self.print_header("Generating Custom Character Sprites")
+        
+        try:
+            base_sprite = generate_custom_character(
+                skin_tone=skin_tone,
+                hair_color=hair_color,
+                shirt_color=shirt_color,
+                pants_color=pants_color,
+                shoes_color=shoes_color,
+                eye_color=eye_color,
+                hair_style=hair_style,
+                gender=gender,
+                age=age,
+                output_dir=str(self.output_dir)
+            )
+            self.stats["generated"] += 6  # All sprite files
+            print("✅ Custom character sprites generated successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error generating custom sprites: {e}")
+            self.stats["errors"] += 1
+            return False
+    
+    def generate_random_sprites(self, force: bool = False) -> bool:
+        """Generate random character sprites with random appearance"""
+        self.print_header("Generating Random Character Sprites")
+        
+        try:
+            base_sprite = generate_random_character(str(self.output_dir))
+            self.stats["generated"] += 6  # All sprite files
+            print("✅ Random character sprites generated successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error generating random sprites: {e}")
+            self.stats["errors"] += 1
+            return False
+
     def generate_all_sprites(self, force: bool = False) -> bool:
         """Generate all sprite assets"""
         self.print_header("Generating All Sprite Assets")

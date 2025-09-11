@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unified Audio Manager for Runic Lands - FIXED VERSION
+Unified Audio Manager for Runic Lands
 Consolidates audio generation, checking, and fixing functionality
 """
 
@@ -58,12 +58,7 @@ class AudioManager:
         missing_files = []
         
         for filename, description in self.required_files.items():
-            if filename.startswith("menu_section"):
-                path = self.audio_dir / "menu" / filename
-            elif filename.startswith("game_section"):
-                path = self.audio_dir / "game" / filename
-            else:
-                path = self.audio_dir / filename
+            path = self.audio_dir / filename
             exists = path.exists()
             status[filename] = exists
             
@@ -87,12 +82,7 @@ class AudioManager:
         analyses = {}
         
         for filename in self.required_files.keys():
-            if filename.startswith("menu_section"):
-                path = self.audio_dir / "menu" / filename
-            elif filename.startswith("game_section"):
-                path = self.audio_dir / "game" / filename
-            else:
-                path = self.audio_dir / filename
+            path = self.audio_dir / filename
             if not path.exists():
                 continue
                 
@@ -128,10 +118,6 @@ class AudioManager:
         """Generate menu music sections"""
         self.print_header("Generating Menu Music")
         
-        # Create menu subdirectory
-        menu_dir = self.audio_dir / "menu"
-        menu_dir.mkdir(exist_ok=True)
-        
         # Musical note frequencies (in Hz)
         notes = {
             'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23,
@@ -156,7 +142,7 @@ class AudioManager:
         success_count = 0
         
         for filename, note_sequence in sections.items():
-            filepath = menu_dir / filename
+            filepath = self.audio_dir / filename
             
             if filepath.exists() and not force:
                 print(f"⏭️  Skipping {filename} (already exists)")
@@ -184,10 +170,6 @@ class AudioManager:
         """Generate game music sections"""
         self.print_header("Generating Game Music")
         
-        # Create game subdirectory
-        game_dir = self.audio_dir / "game"
-        game_dir.mkdir(exist_ok=True)
-        
         # Game music uses different patterns - more atmospheric
         notes = {
             'C3': 130.81, 'D3': 146.83, 'E3': 164.81, 'F3': 174.61,
@@ -212,7 +194,7 @@ class AudioManager:
         success_count = 0
         
         for filename, note_sequence in sections.items():
-            filepath = game_dir / filename
+            filepath = self.audio_dir / filename
             
             if filepath.exists() and not force:
                 print(f"⏭️  Skipping {filename} (already exists)")

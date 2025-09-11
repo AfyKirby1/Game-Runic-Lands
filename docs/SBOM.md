@@ -5,7 +5,7 @@
 This document provides a comprehensive inventory of all software packages, dependencies, and components used in the Runic Lands project. This SBOM is maintained for security purposes and compliance requirements.
 
 **Generated**: December 2024  
-**Project Version**: 0.1.0  
+**Project Version**: 0.8.0  
 **Python Version**: 3.13.1  
 
 ## 🐍 Core Dependencies

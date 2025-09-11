@@ -16,11 +16,19 @@
 - **Day/Night Cycle**: Dynamic lighting with celestial bodies and shadows
 - **Forest Border System**: Multi-layered density system with Oak, Pine, and Maple trees
 - **Launch System**: Fixed dependency installation and launch scripts
+- **Asset Generator GUI**: Modern graphical interface for asset generation and management
+- **Character Customization**: Full character appearance customization with color/style options
+- **Enhanced Preview System**: Grid-based sprite preview with scrollable canvas
+- **Audio Generation Tools**: Programmatic generation of game audio assets
 
 ### ✅ Recently Fixed Issues
 1. **Dependency Installation**: Fixed launch_game.bat to properly install all required packages
 2. **Missing opensimplex**: Resolved ModuleNotFoundError for opensimplex dependency
 3. **Launch Script Errors**: Improved error handling and user feedback
+4. **Asset Generator GUI**: Fixed visual bugs, infinite loops, and preview system
+5. **Character Customization**: Implemented full character appearance customization system
+6. **Preview System**: Enhanced with scrollable canvas, grid layout, and proper sizing
+7. **Thread Safety**: Fixed GUI thread safety issues and auto-refresh functionality
 
 ### ⚠️ Remaining Critical Issues
 1. **Architecture Duplication**: Two main.py files (root and src/) causing confusion

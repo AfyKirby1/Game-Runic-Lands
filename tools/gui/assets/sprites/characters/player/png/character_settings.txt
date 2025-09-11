@@ -1,0 +1,9 @@
+skin_tone: skin_medium
+hair_color: hair_brown
+shirt_color: clothing_brown
+pants_color: clothing_gray
+shoes_color: clothing_black
+eye_color: eye_brown
+hair_style: medium
+gender: male
+age: adult
