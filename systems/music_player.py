@@ -6,10 +6,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 class MusicPlayerSystem:
-    """A system for browsing and playing music tracks in-game"""
+    """A system for browsing and playing music tracks in-game."""
     
     def __init__(self, options_system):
-        """Initialize the music player with a reference to the options system"""
+        """Initializes the MusicPlayerSystem.
+
+        Args:
+            options_system (any): A reference to the options system.
+        """
         self.options = options_system
         self.tracks = []  # List of all available tracks
         self.menu_tracks = []  # Menu sections
@@ -23,7 +27,7 @@ class MusicPlayerSystem:
         self.scan_music_files()
         
     def initialize_font(self):
-        """Initialize the font for rendering track names"""
+        """Initializes the font for the music player UI."""
         try:
             self.font = pygame.font.Font('assets/fonts/runic.ttf', 20)
             if not self.font:
@@ -32,7 +36,7 @@ class MusicPlayerSystem:
             self.font = pygame.font.SysFont('Arial', 18)
     
     def scan_music_files(self):
-        """Scan for all available music files"""
+        """Scans the assets directory for music files and populates the track lists."""
         self.tracks = []
         self.menu_tracks = []
         self.game_tracks = []
@@ -83,7 +87,14 @@ class MusicPlayerSystem:
                 self.tracks.append(track)
     
     def _get_menu_section_description(self, section_num):
-        """Get a description for a menu section by number"""
+        """Gets a description for a menu music section.
+
+        Args:
+            section_num (int): The section number.
+
+        Returns:
+            str: The description of the music section.
+        """
         descriptions = {
             1: "Heroic Intro - Ascending scale",
             2: "Calm Town-like Section - Arpeggio pattern",
@@ -99,7 +110,14 @@ class MusicPlayerSystem:
         return descriptions.get(section_num, f"Menu Section {section_num}")
 
     def _get_game_section_description(self, section_num):
-        """Get a description for a game section by number"""
+        """Gets a description for a game music section.
+
+        Args:
+            section_num (int): The section number.
+
+        Returns:
+            str: The description of the music section.
+        """
         descriptions = {
             1: "Forest Exploration - Peaceful C4-based melody",
             2: "Village Theme - Bright, E4-based melody",
@@ -115,7 +133,7 @@ class MusicPlayerSystem:
         return descriptions.get(section_num, f"Game Section {section_num}")
     
     def activate(self):
-        """Activate the music player UI"""
+        """Activates the music player UI."""
         if not self.active:
             # Store currently playing track
             self.previous_track_name = self.options.current_track
@@ -154,7 +172,7 @@ class MusicPlayerSystem:
         return False
     
     def deactivate(self):
-        """Deactivate the music player and restore previous music"""
+        """Deactivates the music player UI and restores the previous music."""
         if self.active:
             # Stop any playing track
             if self.playing:
@@ -187,7 +205,7 @@ class MusicPlayerSystem:
         return False
     
     def play_selected_track(self):
-        """Play the currently selected track"""
+        """Plays the currently selected track."""
         if self.current_index < len(self.tracks):
             # Get the selected track
             track = self.tracks[self.current_index]
@@ -224,7 +242,7 @@ class MusicPlayerSystem:
         return False
     
     def stop_playback(self):
-        """Stop the currently playing track"""
+        """Stops the currently playing track."""
         if self.playing:
             pygame.mixer.music.stop()
             self.options.stop_music()
@@ -234,14 +252,14 @@ class MusicPlayerSystem:
         return False
     
     def toggle_playback(self):
-        """Toggle play/pause of the currently selected track"""
+        """Toggles playback of the currently selected track."""
         if self.playing:
             return self.stop_playback()
         else:
             return self.play_selected_track()
     
     def next_track(self):
-        """Select the next track"""
+        """Selects the next track in the list."""
         if len(self.tracks) > 0:
             self.current_index = (self.current_index + 1) % len(self.tracks)
             logger.info(f"Selected track: {self.tracks[self.current_index]['name']}")
@@ -249,7 +267,7 @@ class MusicPlayerSystem:
         return False
     
     def previous_track(self):
-        """Select the previous track"""
+        """Selects the previous track in the list."""
         if len(self.tracks) > 0:
             self.current_index = (self.current_index - 1) % len(self.tracks)
             logger.info(f"Selected track: {self.tracks[self.current_index]['name']}")
@@ -257,7 +275,15 @@ class MusicPlayerSystem:
         return False
     
     def render(self, screen, position=(100, 100), width=600, height=400):
-        """Render the music player UI at the given position"""
+        """Renders the music player UI.
+
+        Args:
+            screen (pygame.Surface): The surface to draw the UI on.
+            position (Tuple[int, int], optional): The top-left corner of the UI.
+                Defaults to (100, 100).
+            width (int, optional): The width of the UI. Defaults to 600.
+            height (int, optional): The height of the UI. Defaults to 400.
+        """
         if not self.active:
             return
             
@@ -340,7 +366,14 @@ class MusicPlayerSystem:
         screen.blit(controls_text, (position[0] + 20, position[1] + height - 100))
     
     def handle_event(self, event):
-        """Handle input events for the music player"""
+        """Handles input events for the music player.
+
+        Args:
+            event (pygame.event.Event): The event to handle.
+
+        Returns:
+            bool: True if the event was handled, False otherwise.
+        """
         if not self.active:
             return False
             

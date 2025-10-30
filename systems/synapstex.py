@@ -13,7 +13,12 @@ import random
 import os
 
 class RenderLayer(Enum):
-    """Rendering layers for proper draw order"""
+    """
+    Defines the rendering layers to ensure a proper draw order for game objects.
+
+    Objects in lower-valued layers are drawn first, appearing behind objects
+    in higher-valued layers.
+    """
     BACKGROUND = auto()
     TERRAIN = auto()
     SHADOWS = auto()
@@ -23,7 +28,12 @@ class RenderLayer(Enum):
     UI_OVERLAY = auto()
 
 class BlendMode(Enum):
-    """Blend modes for rendering"""
+    """
+    Specifies the blend mode to be used when rendering surfaces.
+
+    These modes correspond to Pygame's blend constants and are used for
+    effects like additive lighting or color multiplication.
+    """
     NORMAL = 0  # Normal blitting
     ADD = pygame.BLEND_ADD
     MULTIPLY = pygame.BLEND_MULT
@@ -31,7 +41,12 @@ class BlendMode(Enum):
     ALPHA = pygame.BLEND_RGBA_ADD  # For alpha blending
 
 class ParticleType(Enum):
-    """Types of particles for different effects"""
+    """
+    Enumeration of different particle types, each with unique behaviors.
+
+    Used by the ParticleSystem to determine how a particle should be updated
+    and rendered.
+    """
     SPARKLE = auto()
     DUST = auto()
     LEAF = auto()
@@ -40,6 +55,13 @@ class ParticleType(Enum):
     FIREFLY = auto()
 
 class Particle:
+    """
+    Represents a single particle in the ParticleSystem.
+
+    This class manages the state and behavior of a particle, including its
+    position, color, size, lifetime, and movement logic, which varies based
+    on its ParticleType.
+    """
     def __init__(self, x: float, y: float, particle_type: ParticleType,
                  color: Tuple[int, int, int, int],
                  size: float = 1.5,
@@ -47,6 +69,25 @@ class Particle:
                  screen_width: int = 800,
                  screen_height: int = 600,
                  use_world_space: bool = False):
+        """
+        Initializes a Particle.
+
+        Args:
+            x (float): The initial x-coordinate.
+            y (float): The initial y-coordinate.
+            particle_type (ParticleType): The type of the particle.
+            color (Tuple[int, int, int, int]): The RGBA color of the particle.
+            size (float, optional): The size of the particle. Defaults to 1.5.
+            lifetime (float, optional): The duration the particle will exist, in seconds.
+                                       Defaults to 3.0.
+            screen_width (int, optional): The width of the screen, for boundary checks.
+                                          Defaults to 800.
+            screen_height (int, optional): The height of the screen, for boundary checks.
+                                           Defaults to 600.
+            use_world_space (bool, optional): Whether the particle's coordinates are
+                                              in world space or screen space.
+                                              Defaults to False.
+        """
         self.x = x
         self.y = y
         self.type = particle_type
@@ -154,7 +195,15 @@ class Particle:
             self.vy = random.uniform(-5, 5)
 
     def update(self, dt: float):
-        """Update with type-specific behaviors"""
+        """
+        Updates the particle's state based on its type and elapsed time.
+
+        Args:
+            dt (float): The time delta since the last update, in seconds.
+
+        Returns:
+            bool: True if the particle's lifetime has expired, False otherwise.
+        """
         self.age += dt
         self.lifetime -= dt
         if self.lifetime <= 0:
@@ -299,6 +348,18 @@ class Particle:
         return False  # Particle is still alive
 
     def draw(self, screen: pygame.Surface, offset: Tuple[float, float] = (0, 0)):
+        """
+        Draws the particle on the screen.
+
+        This method handles the visual representation of the particle, which
+        varies depending on its type. It also accounts for the camera offset
+        if the particle exists in world space.
+
+        Args:
+            screen (pygame.Surface): The screen surface to draw on.
+            offset (Tuple[float, float], optional): The camera's world offset.
+                                                     Defaults to (0, 0).
+        """
         if self.use_world_space:
             # Calculate screen position from world position
             screen_x = self.x - offset[0]

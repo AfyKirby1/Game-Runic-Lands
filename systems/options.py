@@ -56,9 +56,21 @@ DEFAULT_VIDEO = {
 }
 
 class OptionsSystem:
-    """Manages game settings including keybindings and audio settings"""
+    """
+    Manages game settings including keybindings, audio, and video.
+
+    This class handles loading, saving, and applying all user-configurable
+    settings. It provides methods to interact with video, audio, and input
+    configurations, ensuring a persistent state between game sessions.
+    """
     
     def __init__(self):
+        """
+        Initializes the OptionsSystem.
+
+        Sets up default values, initializes Pygame mixer, and loads settings
+        from the configuration file if it exists.
+        """
         self.logger = logging.getLogger(__name__)
         self.settings_file = Path("settings.json")
         self.default_settings = {
@@ -84,7 +96,12 @@ class OptionsSystem:
         self.initialize()
 
     def initialize(self):
-        """Initialize the options system."""
+        """
+        Initializes the options system by loading settings from a file.
+
+        If loading fails, it resets to default settings and creates the
+        settings file.
+        """
         try:
             self.load_settings()
             self.logger.info("Options system initialized successfully")
@@ -94,7 +111,14 @@ class OptionsSystem:
             self.save_settings()
 
     def load_settings(self):
-        """Load settings from file."""
+        """
+        Loads game settings from the settings JSON file.
+
+        This method reads `settings.json` and populates the system's
+        configuration. It handles nested structures for keybinds, audio, and
+        video. If the file doesn't exist or an error occurs, it falls back
+        to default settings.
+        """
         try:
             if self.settings_file.exists():
                 with open(self.settings_file, 'r') as f:
@@ -131,7 +155,12 @@ class OptionsSystem:
             self.settings = self.default_settings.copy()
 
     def save_settings(self):
-        """Save current settings to file."""
+        """
+        Saves the current game settings to the settings JSON file.
+
+        This method serializes all current settings, including keybinds, audio,
+        and video configurations, into `settings.json` for persistence.
+        """
         try:
             # Combine settings, keybinds, audio, and video for saving
             data_to_save = self.settings.copy()
@@ -145,62 +174,128 @@ class OptionsSystem:
             self.logger.error(f"Error saving settings: {e}")
 
     def get_screen_size(self) -> Tuple[int, int]:
-        """Get the current screen size setting."""
+        """
+        Gets the current screen size setting.
+
+        Returns:
+            Tuple[int, int]: The current screen size as a (width, height) tuple.
+        """
         return self.settings['screen_size']
 
     def set_screen_size(self, width: int, height: int):
-        """Set the screen size setting."""
+        """
+        Sets the screen size setting.
+
+        Args:
+            width (int): The new screen width in pixels.
+            height (int): The new screen height in pixels.
+        """
         self.settings['screen_size'] = (width, height)
         self.save_settings()
 
     def get_fps(self) -> int:
-        """Get the current FPS setting."""
+        """
+        Gets the current target frames per second (FPS) setting.
+
+        Returns:
+            int: The current FPS target.
+        """
         return self.settings['fps']
 
     def set_fps(self, fps: int):
-        """Set the FPS setting."""
+        """
+        Sets the target frames per second (FPS) setting.
+
+        Args:
+            fps (int): The new FPS target.
+        """
         self.settings['fps'] = fps
         self.save_settings()
 
     def get_volume(self) -> float:
-        """Get the current volume setting."""
+        """
+        Gets the current master volume setting.
+
+        Returns:
+            float: The current volume level (0.0 to 1.0).
+        """
         return self.settings['volume']
 
     def set_volume(self, volume: float):
-        """Set the volume setting."""
+        """
+        Sets the master volume setting.
+
+        Args:
+            volume (float): The new volume level (clamped between 0.0 and 1.0).
+        """
         self.settings['volume'] = max(0.0, min(1.0, volume))
         self.save_settings()
 
     def get_fullscreen(self) -> bool:
-        """Get the current fullscreen setting."""
+        """
+        Gets the current fullscreen mode setting.
+
+        Returns:
+            bool: True if fullscreen is enabled, False otherwise.
+        """
         return self.settings['fullscreen']
 
     def set_fullscreen(self, fullscreen: bool):
-        """Set the fullscreen setting."""
+        """
+        Sets the fullscreen mode.
+
+        Args:
+            fullscreen (bool): The desired fullscreen state.
+        """
         self.settings['fullscreen'] = fullscreen
         self.save_settings()
 
     def get_vsync(self) -> bool:
-        """Get the current vsync setting."""
+        """
+        Gets the current VSync setting.
+
+        Returns:
+            bool: True if VSync is enabled, False otherwise.
+        """
         return self.settings['vsync']
     
     def get_setting(self, key: str):
-        """Get a setting value by key - compatibility method."""
+        """
+        Gets a generic setting value by its key.
+
+        Args:
+            key (str): The key of the setting to retrieve.
+
+        Returns:
+            Any: The value of the setting, or None if the key does not exist.
+        """
         return self.settings.get(key)
 
     def set_vsync(self, vsync: bool):
-        """Set the vsync setting."""
+        """
+        Sets the VSync setting.
+
+        Args:
+            vsync (bool): The desired VSync state.
+        """
         self.settings['vsync'] = vsync
         self.save_settings()
 
     def reset_to_defaults(self):
-        """Reset all settings to default values."""
+        """
+        Resets all settings to their default values and saves them.
+        """
         self.settings = self.default_settings.copy()
         self.save_settings()
         self.logger.info("Settings reset to defaults")
 
     def _load_sound_effects(self):
-        """Load sound effects into memory"""
+        """
+        Loads all defined sound effects into memory.
+
+        This internal method populates the `self.sounds` dictionary. If a
+        sound file is missing, it attempts to generate a fallback sound.
+        """
         sound_files = {
             'menu_click': 'assets/audio/menu_click.wav',
             'menu_select': 'assets/audio/menu_select.wav',
@@ -226,7 +321,15 @@ class OptionsSystem:
                         print(f"Could not generate sound: {name} - Error: {e2}")
     
     def _generate_click_sound(self):
-        """Generate a simple click sound if the file is missing"""
+        """
+        Generates a simple click sound if the primary sound file is missing.
+
+        This method uses NumPy and SciPy to create a synthetic sound wave,
+        providing a fallback to prevent crashes when audio assets are not found.
+
+        Raises:
+            Exception: Propagates exceptions from audio generation libraries.
+        """
         try:
             import numpy as np
             from scipy.io import wavfile
@@ -263,16 +366,31 @@ class OptionsSystem:
             print(f"Error generating click sound: {e}")
             raise
     
-    def play_sound(self, sound_name):
-        """Play a sound effect by name"""
+    def play_sound(self, sound_name: str):
+        """
+        Plays a pre-loaded sound effect by its name.
+
+        Args:
+            sound_name (str): The name (key) of the sound effect to play.
+        """
         if sound_name in self.sounds:
             # Apply master volume adjustment
             volume = self.audio['sfx_volume'] * self.audio['master_volume']
             self.sounds[sound_name].set_volume(volume)
             self.sounds[sound_name].play()
     
-    def _get_enhanced_version(self, music_file):
-        """Check if an enhanced version exists and return it if so"""
+    def _get_enhanced_version(self, music_file: str) -> str:
+        """
+        Checks for an enhanced version of a music file.
+
+        (Note: This functionality is currently disabled and returns the original path.)
+
+        Args:
+            music_file (str): The path to the music file.
+
+        Returns:
+            str: The path to the enhanced music file, or the original path.
+        """
         try:
             # Just return the original file - enhanced versions were removed
             print(f"Using music file: {music_file}")
@@ -281,8 +399,23 @@ class OptionsSystem:
             print(f"Error checking for enhanced version: {e}")
             return music_file
 
-    def play_music(self, music_file, loop=True, queue=False):
-        """Play a music file with error handling"""
+    def play_music(self, music_file: str, loop: bool = True, queue: bool = False) -> bool:
+        """
+        Plays a music file, with options for looping and queuing.
+
+        This is the primary method for controlling music playback. It handles
+        loading, playing, and queuing tracks, and applies the current volume
+        settings.
+
+        Args:
+            music_file (str): The path to the music file to be played.
+            loop (bool, optional): If True, the music will loop indefinitely. Defaults to True.
+            queue (bool, optional): If True, the music will be added to the
+                                  queue instead of playing immediately. Defaults to False.
+
+        Returns:
+            bool: True if the music was played or queued successfully, False otherwise.
+        """
         if not music_file:
             return False
             
@@ -357,8 +490,16 @@ class OptionsSystem:
             print(f"Error playing music: {e}")
             return False
 
-    def handle_music_event(self, event):
-        """Handle music end event to play the next track if available"""
+    def handle_music_event(self, event: pygame.event.Event):
+        """
+        Handles music-related Pygame events, primarily for seamless track transitions.
+
+        This method should be called from the main game loop to process events.
+        It checks for the music end event and plays the next track in the queue.
+
+        Args:
+            event (pygame.event.Event): The Pygame event to process.
+        """
         
         # If music player is active, don't handle automatic music events
         if getattr(self, 'music_player_active', False):
@@ -400,8 +541,15 @@ class OptionsSystem:
             else:
                 return self.start_seamless_menu_music()
 
-    def _rebuild_section_queue(self, current_track=None):
-        """Rebuild the music queue based on the current track"""
+    def _rebuild_section_queue(self, current_track: str = None):
+        """
+        Rebuilds the music queue for menu sections to ensure continuous playback.
+
+        Args:
+            current_track (str, optional): The filename of the track that just
+                                           finished, used to determine the next
+                                           track in sequence. Defaults to None.
+        """
         # Clear existing queue
         self.music_queue = []
         
@@ -444,8 +592,14 @@ class OptionsSystem:
             
         print(f"DEBUG: Rebuilt queue with {len(existing_sections)} sections starting after {current_track}")
     
-    def _rebuild_game_section_queue(self, current_track=None):
-        """Rebuild the game music queue based on the current track"""
+    def _rebuild_game_section_queue(self, current_track: str = None):
+        """
+        Rebuilds the music queue for in-game sections.
+
+        Args:
+            current_track (str, optional): The filename of the track that just
+                                           finished. Defaults to None.
+        """
         # Clear existing queue
         self.music_queue = []
         
@@ -489,7 +643,12 @@ class OptionsSystem:
         print(f"DEBUG: Rebuilt game queue with {len(existing_sections)} sections starting after {current_track}")
     
     def _play_next_track_now(self):
-        """Immediately play the next track in the queue without delays"""
+        """
+        Immediately plays the next track in the music queue.
+
+        This is a low-level method designed to minimize delay between tracks
+        for seamless playback.
+        """
         print(f"DEBUG: Playing next track immediately at {pygame.time.get_ticks()} ms")
         
         # If we have a next track ready, play it right away
@@ -560,7 +719,11 @@ class OptionsSystem:
             return self._immediate_play_sequence()
     
     def _immediate_play_sequence(self):
-        """Immediately start playing the section sequence from the beginning"""
+        """
+        Immediately starts playing the menu music sequence from the beginning.
+
+        This method is optimized for fast startup of the menu music loop.
+        """
         print(f"DEBUG: Starting immediate sequence at {pygame.time.get_ticks()} ms")
         
         # Clear existing queue and state
@@ -666,7 +829,9 @@ class OptionsSystem:
                 return False
     
     def _immediate_play_game_sequence(self):
-        """Immediately start playing the game section sequence from the beginning"""
+        """
+        Immediately starts playing the in-game music sequence from the beginning.
+        """
         print(f"DEBUG: Starting immediate game sequence at {pygame.time.get_ticks()} ms")
         
         # Clear existing queue and state
@@ -771,13 +936,27 @@ class OptionsSystem:
                 print(f"CRITICAL: Both game section playback methods failed: {e2}")
                 return False
     
-    def _fallback_to_theme(self, theme_file):
-        """Fallback to playing a standard theme file"""
+    def _fallback_to_theme(self, theme_file: str):
+        """
+        Provides a fallback to play a standard theme if sections are missing.
+        (Currently logs an error and returns False).
+
+        Args:
+            theme_file (str): The path to the fallback theme file.
+
+        Returns:
+            bool: Always returns False.
+        """
         print(f"ERROR: Music section files missing. Unable to play theme: {theme_file}")
         return False
 
     def queue_section_music(self):
-        """Queue all menu sections to play in sequence without gaps"""
+        """
+        Queues all available menu music sections to play in a seamless loop.
+
+        This method intelligently determines a starting track and queues the
+        rest to create a continuous, non-repetitive music experience.
+        """
         try:
             # Clear any existing queue
             self.next_track = None
@@ -865,7 +1044,9 @@ class OptionsSystem:
             return False
 
     def queue_game_music(self):
-        """Queue all game music sections to play in sequence without gaps"""
+        """
+        Queues all available in-game music sections for seamless playback.
+        """
         try:
             # First, analyze music files to identify potential issues
             game_sections_available = self._analyze_game_music_files()
@@ -935,7 +1116,9 @@ class OptionsSystem:
             return False
 
     def stop_music(self):
-        """Stop currently playing music"""
+        """
+        Stops the currently playing music and clears the queue.
+        """
         if pygame.mixer and pygame.mixer.get_init() and pygame.mixer.music.get_busy():
             pygame.mixer.music.stop()
             print(f"DEBUG: Music stopped - {getattr(self, 'current_track', 'unknown')}")
@@ -944,25 +1127,45 @@ class OptionsSystem:
             self.music_queue = []
             self.next_track = None
     
-    def set_fullscreen_callback(self, callback):
-        """Set a callback function to handle fullscreen toggle"""
+    def set_fullscreen_callback(self, callback: callable):
+        """
+        Sets a callback function to be executed when fullscreen is toggled.
+
+        Args:
+            callback (callable): The function to call. It should handle the
+                                 re-initialization of the display surface.
+        """
         self.fullscreen_callback = callback
     
     def toggle_fullscreen(self):
-        """Toggle fullscreen mode on/off"""
+        """
+        Toggles the fullscreen mode and triggers the video change callback.
+        """
         self.video['fullscreen'] = not self.video['fullscreen']
         self.save_settings()
         self.trigger_video_change()
         logger.info(f"Fullscreen toggled: {self.video['fullscreen']}")
     
-    def set_resolution(self, width, height):
-        """Set screen resolution"""
+    def set_resolution(self, width: int, height: int):
+        """
+        Sets the screen resolution and triggers the video change callback.
+
+        Args:
+            width (int): The new screen width in pixels.
+            height (int): The new screen height in pixels.
+        """
         self.video['resolution'] = (width, height)
         self.save_settings()
         self.trigger_video_change()
     
-    def cycle_resolution(self, direction=1):
-        """Cycles through available resolutions."""
+    def cycle_resolution(self, direction: int = 1):
+        """
+        Cycles through the list of available screen resolutions.
+
+        Args:
+            direction (int, optional): The direction to cycle. 1 for next,
+                                     -1 for previous. Defaults to 1.
+        """
         current_res = tuple(self.video['resolution']) # Ensure tuple for comparison
         try:
             current_index = AVAILABLE_RESOLUTIONS.index(current_res)
@@ -975,8 +1178,13 @@ class OptionsSystem:
         self.trigger_video_change()
         logger.info(f"Resolution changed to: {self.video['resolution']}")
     
-    def set_gui_scale(self, scale):
-        """Sets the GUI scale factor."""
+    def set_gui_scale(self, scale: float):
+        """
+        Sets the scale factor for GUI elements.
+
+        Args:
+            scale (float): The new GUI scale factor (e.g., 1.0 for default).
+        """
         # Add validation/clamping if needed (e.g., 0.5 to 3.0)
         self.video['gui_scale'] = float(scale)
         self.save_settings()
@@ -985,7 +1193,9 @@ class OptionsSystem:
         logger.info(f"GUI Scale set to: {self.video['gui_scale']}")
             
     def toggle_vsync(self):
-        """Toggle vertical sync on/off"""
+        """
+        Toggles the vertical sync (VSync) setting.
+        """
         self.video['vsync'] = not self.video['vsync']
         self.save_settings()
         # VSync toggle might also require display reinitialization
@@ -993,7 +1203,9 @@ class OptionsSystem:
         logger.info(f"VSync toggled: {self.video['vsync']}")
             
     def toggle_particles(self):
-        """Toggle particle effects on/off"""
+        """
+        Toggles the particle effects setting.
+        """
         self.video['particles_enabled'] = not self.video['particles_enabled']
         self.save_settings()
         # No need to reinitialize display, just update the setting
@@ -1001,8 +1213,14 @@ class OptionsSystem:
             self.video_change_callback()  # Call without passing video - the callback can access it if needed
         logger.info(f"Particles toggled: {self.video['particles_enabled']}")
             
-    def set_volume(self, volume_type, value):
-        """Set volume level (0.0 to 1.0) for a specified audio channel"""
+    def set_volume(self, volume_type: str, value: float):
+        """
+        Sets the volume for a specific audio channel (e.g., music, sfx).
+
+        Args:
+            volume_type (str): The audio channel key (e.g., 'master_volume', 'music_volume').
+            value (float): The new volume level (0.0 to 1.0).
+        """
         if volume_type in self.audio:
             # Clamp value to valid range
             value = max(0.0, min(1.0, value))
@@ -1017,19 +1235,40 @@ class OptionsSystem:
                 pygame.mixer.music.set_volume(effective_volume)
                 print(f"DEBUG: Music volume changed - {volume_type}={value:.2f}, effective={effective_volume:.2f}")
     
-    def get_keybind(self, player, action):
-        """Get the key code for a player's action"""
+    def get_keybind(self, player: str, action: str) -> int:
+        """
+        Retrieves the keybinding for a specific player and action.
+
+        Args:
+            player (str): The player identifier (e.g., 'player1').
+            action (str): The action identifier (e.g., 'up', 'attack').
+
+        Returns:
+            int: The Pygame key code for the action, or None if not found.
+        """
         if player in self.keybinds and action in self.keybinds[player]:
             return self.keybinds[player][action]
         return None
     
-    def set_keybind(self, player, action, key):
-        """Set the key binding for a player's action"""
+    def set_keybind(self, player: str, action: str, key: int):
+        """
+        Sets the keybinding for a specific player and action.
+
+        Args:
+            player (str): The player identifier (e.g., 'player1').
+            action (str): The action identifier (e.g., 'up').
+            key (int): The new Pygame key code to assign.
+        """
         if player in self.keybinds and action in self.keybinds[player]:
             self.keybinds[player][action] = key
             self.save_settings()
     
     def apply_audio_settings(self):
+        """
+        Applies the current audio settings to the Pygame mixer.
+
+        This is typically called after changing volume or mute status.
+        """
         if pygame.mixer.get_init():
             try:
                 volume = 0.0 if self.audio['is_muted'] else self.audio["music_volume"]
@@ -1040,21 +1279,43 @@ class OptionsSystem:
         else:
              logger.warning("Mixer not initialized, cannot apply audio settings.")
 
-    def set_music_volume(self, volume):
+    def set_music_volume(self, volume: float):
+        """
+        Sets the dedicated music volume level.
+
+        Args:
+            volume (float): The new music volume (0.0 to 1.0).
+        """
         self.audio["music_volume"] = max(0.0, min(1.0, volume))
         self.apply_audio_settings()
 
-    def set_sound_volume(self, volume):
+    def set_sound_volume(self, volume: float):
+        """
+        Sets the dedicated sound effects (SFX) volume level.
+
+        Args:
+            volume (float): The new SFX volume (0.0 to 1.0).
+        """
         self.audio["sfx_volume"] = max(0.0, min(1.0, volume))
         # Applying sound volume immediately isn't straightforward
         # as individual sounds use this value when played.
 
     def toggle_mute(self):
+        """
+        Toggles the global mute state for all audio.
+        """
         self.audio['is_muted'] = not self.audio.get('is_muted', False) # Use .get for safety
         self.apply_audio_settings()
         logger.info(f"Audio {'muted' if self.audio['is_muted'] else 'unmuted'}.")
 
-    def play_sound(self, sound_name):
+    def play_sound(self, sound_name: str):
+        """
+        Plays a sound effect by name, respecting mute and volume settings.
+
+        Args:
+            sound_name (str): The name of the sound file (without extension)
+                              located in `assets/audio/`.
+        """
         if pygame.mixer.get_init() and not self.audio.get('is_muted', False):
             try:
                 # Load sound from assets (assuming a helper function or manager exists)
@@ -1075,27 +1336,61 @@ class OptionsSystem:
         elif self.audio.get('is_muted', False):
              logger.debug(f"Sound {sound_name} not played because audio is muted.")
 
-    def get_keybind(self, player, action):
+    def get_keybind(self, player: str, action: str) -> int:
+        """
+        Retrieves the keybinding for a specific player and action.
+
+        Args:
+            player (str): The player identifier (e.g., 'player1').
+            action (str): The action identifier (e.g., 'up').
+
+        Returns:
+            int: The Pygame key code, or None if not found.
+        """
         return self.keybinds.get(player, {}).get(action, None)
 
-    def set_keybind(self, player, action, key):
+    def set_keybind(self, player: str, action: str, key: int):
+        """
+        Sets the keybinding for a specific player and action and saves it.
+
+        Args:
+            player (str): The player identifier (e.g., 'player1').
+            action (str): The action identifier (e.g., 'up').
+            key (int): The new Pygame key code.
+        """
         if player in self.keybinds and action in self.keybinds[player]:
             self.keybinds[player][action] = key
             self.save_settings()
 
-    def set_video_change_callback(self, callback):
-        """Set a callback function to handle fullscreen or resolution changes"""
+    def set_video_change_callback(self, callback: callable):
+        """
+        Registers a callback function to be called when video settings change.
+
+        Args:
+            callback (callable): The function to execute on video setting changes.
+        """
         self.video_change_callback = callback
         
     def trigger_video_change(self):
-         """Calls the video change callback if it's set."""
+         """
+         Executes the registered video change callback, if it exists.
+
+         This is called internally when settings like resolution or fullscreen
+         mode are changed.
+         """
          if self.video_change_callback:
              self.video_change_callback()
          else:
              logger.warning("Video change triggered, but no callback is set.")
 
     def _analyze_music_files(self):
-        """Analyze music files to identify any potential issues"""
+        """
+        Performs a diagnostic analysis of all music files.
+
+        This method checks for the existence, size, and duration of menu,
+        game, and theme music files, printing a report to the console. It helps
+        in debugging missing or corrupt audio assets.
+        """
         print("\n=== MUSIC FILE ANALYSIS ===")
         
         # ===== Analyze Menu Music Files =====
@@ -1240,7 +1535,12 @@ class OptionsSystem:
         return True 
 
     def _analyze_game_music_files(self):
-        """Analyze game music files specifically for in-game music system"""
+        """
+        Performs a diagnostic analysis of in-game music files.
+
+        Returns:
+            bool: True if at least one game music section file exists, False otherwise.
+        """
         print("\n=== GAME MUSIC FILE ANALYSIS ===\n")
         
         # Define game section paths and check which ones exist
@@ -1319,7 +1619,12 @@ class OptionsSystem:
         return len(existing_sections) > 0 
 
     def _analyze_menu_music_files(self):
-        """Analyze menu music files specifically for menu music system"""
+        """
+        Performs a diagnostic analysis of menu music files.
+
+        Returns:
+            bool: True if at least one menu music section file exists, False otherwise.
+        """
         print("\n=== MENU MUSIC FILE ANALYSIS ===\n")
         
         # Define menu section paths and check which ones exist
@@ -1352,7 +1657,7 @@ class OptionsSystem:
         # Check fallback theme files
         fallback_paths = [
             "assets/audio/menu_theme.wav",
-            "assets/audio/enhanced_menu_theme.wav"
+            "assets.audio/enhanced_menu_theme.wav"
         ]
         
         print("\nFallback theme check:")
@@ -1393,7 +1698,13 @@ class OptionsSystem:
         return len(existing_sections) > 0 
 
     def start_seamless_menu_music(self):
-        """Start seamless menu music that properly loops through all sections"""
+        """
+        Starts a seamless, looping playback of all available menu music sections.
+
+        This method is the recommended way to start menu music. It handles
+        stopping previous tracks, building a resilient queue, and starting
+        playback.
+        """
         try:
             # Clear any existing queue and state
             self.next_track = None

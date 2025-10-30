@@ -34,7 +34,20 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class WorldConfig:
-    """Configuration for the world system."""
+    """
+    Holds configuration settings for the modern world system.
+
+    Attributes:
+        tile_size (int): The size of a single tile in pixels.
+        chunk_size (int): The size of a world chunk (width and height) in tiles.
+        world_width (int): The total width of the world in chunks.
+        world_height (int): The total height of the world in chunks.
+        view_distance (int): The radius of chunks to keep loaded around the player.
+        max_grass_blades (int): The maximum number of grass blades to render.
+        wind_strength (float): The strength of the wind effect on trees and grass.
+        minutes_per_second (float): The rate at which in-game time passes.
+        start_hour (int): The initial hour of the day when the world is created.
+    """
     tile_size: int = 32
     chunk_size: int = 16
     world_width: int = 64
@@ -47,9 +60,24 @@ class WorldConfig:
 
 
 class ModernWorld:
-    """Modern world system with fixed flashing trees and better performance."""
+    """
+    Manages the game world, including chunk loading, time, and environmental effects.
+
+    This class orchestrates the world generation, rendering, and updates. It handles
+    the day-night cycle, weather (via particles), and dynamic elements like wind,
+    while optimizing performance by only processing nearby chunks.
+    """
     
     def __init__(self, config: Optional[WorldConfig] = None, seed: Optional[int] = None):
+        """
+        Initializes the ModernWorld.
+
+        Args:
+            config (Optional[WorldConfig], optional): A configuration object for
+                                                      world settings. Defaults to None.
+            seed (Optional[int], optional): A seed for the world generator to
+                                            ensure reproducibility. Defaults to None.
+        """
         self.config = config or WorldConfig()
         self._seed = seed if seed is not None else random.randint(0, 999999)
         
@@ -87,7 +115,18 @@ class ModernWorld:
         logger.info(f"Modern world initialized with seed {self.seed}")
     
     def update(self, dt: float, graphics: Optional[SynapstexGraphics] = None):
-        """Update world state including time, wind, and particles."""
+        """
+        Updates the state of the world.
+
+        This method advances the in-game time, updates wind and other dynamic
+        environmental effects, and handles particle emissions.
+
+        Args:
+            dt (float): The time delta since the last update, in seconds.
+            graphics (Optional[SynapstexGraphics], optional): The graphics engine,
+                                                              used for emitting particles.
+                                                              Defaults to None.
+        """
         try:
             # Update time
             self._minutes += dt * self.config.minutes_per_second
@@ -113,14 +152,32 @@ class ModernWorld:
             logger.error(f"Error updating world: {e}", exc_info=True)
     
     def get_chunk(self, chunk_x: int, chunk_y: int) -> ModernWorldChunk:
-        """Get or generate a chunk at the given coordinates."""
+        """
+        Retrieves a chunk from memory or generates it if it doesn't exist.
+
+        Args:
+            chunk_x (int): The x-coordinate of the chunk.
+            chunk_y (int): The y-coordinate of the chunk.
+
+        Returns:
+            ModernWorldChunk: The requested world chunk.
+        """
         chunk_key = (chunk_x, chunk_y)
         if chunk_key not in self.loaded_chunks:
             self.loaded_chunks[chunk_key] = self.generator.get_chunk(chunk_x, chunk_y)
         return self.loaded_chunks[chunk_key]
     
     def update_chunks(self, player_x: int, player_y: int):
-        """Update loaded chunks around player position."""
+        """
+        Updates the set of loaded chunks based on the player's position.
+
+        This method loads chunks within the `view_distance` and unloads those
+        that are too far away, optimizing memory usage.
+
+        Args:
+            player_x (int): The player's x-coordinate in world space.
+            player_y (int): The player's y-coordinate in world space.
+        """
         try:
             # Convert player position to chunk coordinates
             chunk_x = player_x // (self.config.chunk_size * self.config.tile_size)
@@ -150,7 +207,17 @@ class ModernWorld:
             logger.error(f"Error updating chunks: {e}", exc_info=True)
     
     def draw(self, screen: pygame.Surface, offset: Tuple[float, float] = (0, 0)):
-        """Draw the world with camera offset."""
+        """
+        Draws the visible portion of the world to the screen.
+
+        This includes border tiles, loaded chunks, border trees, and grass, all
+        rendered with the appropriate camera offset.
+
+        Args:
+            screen (pygame.Surface): The screen surface to draw on.
+            offset (Tuple[float, float], optional): The camera's world offset.
+                                                     Defaults to (0, 0).
+        """
         try:
             offset_x, offset_y = offset
             
@@ -170,7 +237,12 @@ class ModernWorld:
             logger.error(f"Error drawing world: {e}", exc_info=True)
     
     def _generate_forest_border(self):
-        """Generate forest border with persistent colors."""
+        """
+        Generates a dense forest border around the playable area of the world.
+
+        This method creates the visual boundary for the game world, complete
+        with collision data for the densest parts of the forest.
+        """
         try:
             # Calculate world boundaries
             world_chunks_x = self.config.world_width // self.config.chunk_size
@@ -227,12 +299,39 @@ class ModernWorld:
             logger.error(f"Error generating forest border: {e}", exc_info=True)
     
     def _is_border_position(self, x: int, y: int, min_x: int, max_x: int, min_y: int, max_y: int, depth: int) -> bool:
-        """Check if position is in the border area."""
+        """
+        Checks if a given coordinate is within the border area of the world.
+
+        Args:
+            x (int): The x-coordinate to check.
+            y (int): The y-coordinate to check.
+            min_x (int): The minimum x-boundary of the playable world.
+            max_x (int): The maximum x-boundary of the playable world.
+            min_y (int): The minimum y-boundary of the playable world.
+            max_y (int): The maximum y-boundary of the playable world.
+            depth (int): The depth of the border area.
+
+        Returns:
+            bool: True if the position is in the border, False otherwise.
+        """
         return (x < min_x or x > max_x or y < min_y or y > max_y) and \
                (min_x - depth <= x <= max_x + depth and min_y - depth <= y <= max_y + depth)
     
     def _calculate_depth_layer(self, x: int, y: int, min_x: int, max_x: int, min_y: int, max_y: int) -> int:
-        """Calculate depth layer for border position."""
+        """
+        Calculates the depth layer of a position within the border.
+
+        Args:
+            x (int): The x-coordinate.
+            y (int): The y-coordinate.
+            min_x (int): The minimum x-boundary of the playable world.
+            max_x (int): The maximum x-boundary of the playable world.
+            min_y (int): The minimum y-boundary of the playable world.
+            max_y (int): The maximum y-boundary of the playable world.
+
+        Returns:
+            int: The depth layer, capped at 10.
+        """
         dist_from_edge = min(
             abs(x - min_x), abs(x - max_x),
             abs(y - min_y), abs(y - max_y)
@@ -240,12 +339,28 @@ class ModernWorld:
         return min(dist_from_edge, 10)  # Cap at 10
     
     def _is_extended_position(self, x: int, y: int, min_x: int, max_x: int, min_y: int, max_y: int, depth: int) -> bool:
-        """Check if position is in extended forest area."""
+        """
+        Checks if a position is in the extended, non-playable area of the forest.
+
+        Args:
+            x (int): The x-coordinate.
+            y (int): The y-coordinate.
+            min_x (int): The minimum x-boundary of the playable world.
+            max_x (int): The maximum x-boundary of the playable world.
+            min_y (int): The minimum y-boundary of the playable world.
+            max_y (int): The maximum y-boundary of the playable world.
+            depth (int): The depth of the border area.
+
+        Returns:
+            bool: True if the position is in the extended area, False otherwise.
+        """
         return (x < min_x - depth or x > max_x + depth or 
                 y < min_y - depth or y > max_y + depth)
     
     def _generate_initial_grass(self):
-        """Generate initial grass blades."""
+        """
+        Populates the world with an initial set of decorative grass blades.
+        """
         self.grass_blades = []
         for _ in range(self.config.max_grass_blades):
             grass = {
@@ -258,12 +373,23 @@ class ModernWorld:
             self.grass_blades.append(grass)
     
     def _update_grass(self, dt: float):
-        """Update grass wind animation."""
+        """
+        Updates the wind animation for grass blades.
+
+        Args:
+            dt (float): The time delta since the last update.
+        """
         for grass in self.grass_blades:
             grass["angle"] += dt * 0.5  # Gentle swaying
     
     def _emit_environmental_particles(self, graphics: SynapstexGraphics):
-        """Emit environmental particles like falling leaves."""
+        """
+        Emits environmental particles, such as falling leaves in a forest.
+
+        Args:
+            graphics (SynapstexGraphics): The graphics engine to use for
+                                          emitting particles.
+        """
         if random.random() < 0.1:  # 10% chance
             x = random.randint(0, self.config.world_width * self.config.tile_size)
             y = random.randint(0, self.config.world_height * self.config.tile_size)
@@ -276,7 +402,13 @@ class ModernWorld:
             )
     
     def _draw_border_tiles(self, screen: pygame.Surface, offset: Tuple[float, float]):
-        """Draw border ground tiles."""
+        """
+        Draws the ground tiles for the forest border.
+
+        Args:
+            screen (pygame.Surface): The screen surface to draw on.
+            offset (Tuple[float, float]): The camera offset.
+        """
         offset_x, offset_y = offset
         
         for tile in self.border_tiles:
@@ -294,7 +426,13 @@ class ModernWorld:
                            (tile_screen_x, tile_screen_y, self.config.tile_size, self.config.tile_size))
     
     def _draw_loaded_chunks(self, screen: pygame.Surface, offset: Tuple[float, float]):
-        """Draw loaded world chunks."""
+        """
+        Draws all currently loaded world chunks.
+
+        Args:
+            screen (pygame.Surface): The screen surface.
+            offset (Tuple[float, float]): The camera offset.
+        """
         offset_x, offset_y = offset
         
         for chunk in self.loaded_chunks.values():
@@ -323,7 +461,13 @@ class ModernWorld:
                 self.tree_renderer.render_tree(screen, tree, (tree_screen_x, tree_screen_y))
     
     def _draw_border_trees(self, screen: pygame.Surface, offset: Tuple[float, float]):
-        """Draw border trees with persistent colors."""
+        """
+        Draws the trees in the forest border.
+
+        Args:
+            screen (pygame.Surface): The screen surface.
+            offset (Tuple[float, float]): The camera offset.
+        """
         offset_x, offset_y = offset
         
         for tree in self.border_trees:
@@ -337,7 +481,13 @@ class ModernWorld:
             self.tree_renderer.render_tree(screen, tree, (tree_screen_x, tree_screen_y))
     
     def _draw_grass(self, screen: pygame.Surface, offset: Tuple[float, float]):
-        """Draw grass blades."""
+        """
+        Draws decorative grass blades on the screen.
+
+        Args:
+            screen (pygame.Surface): The screen surface.
+            offset (Tuple[float, float]): The camera offset.
+        """
         offset_x, offset_y = offset
         
         for grass in self.grass_blades:
@@ -357,7 +507,15 @@ class ModernWorld:
             pygame.draw.line(screen, (34, 139, 34), (grass_x, grass_y), (end_x, end_y), 1)
     
     def _get_tile_color(self, terrain_type: TerrainType) -> Tuple[int, int, int]:
-        """Get color for terrain type."""
+        """
+        Retrieves the color for a given terrain type.
+
+        Args:
+            terrain_type (TerrainType): The type of terrain.
+
+        Returns:
+            Tuple[int, int, int]: The RGB color for the terrain.
+        """
         colors = {
             TerrainType.GRASS: (34, 139, 34),
             TerrainType.DIRT: (139, 69, 19),
@@ -370,15 +528,27 @@ class ModernWorld:
         return colors.get(terrain_type, (34, 139, 34))
     
     def get_collision_rects(self) -> List[pygame.Rect]:
-        """Get collision rectangles for the world."""
+        """
+        Returns a list of all collision rectangles in the world.
+
+        Returns:
+            List[pygame.Rect]: A copy of the list of collision rectangles.
+        """
         return self.collision_rects.copy()
     
     def get_world_time(self) -> Tuple[int, int, int]:
-        """Get current world time (hours, minutes, days)."""
+        """
+        Gets the current in-game time.
+
+        Returns:
+            Tuple[int, int, int]: A tuple containing the current hour, minute, and day.
+        """
         return (self._hours, int(self._minutes), self._days)
     
     def cleanup(self):
-        """Clean up resources."""
+        """
+        Cleans up world resources, clearing loaded chunks and other data.
+        """
         self.loaded_chunks.clear()
         self.border_trees.clear()
         self.border_tiles.clear()
@@ -389,37 +559,37 @@ class ModernWorld:
     # Compatibility methods for old World class interface
     @property
     def seed(self) -> int:
-        """Get world seed for compatibility."""
+        """Gets the world seed (for compatibility with older systems)."""
         return self._seed
     
     @property
     def width(self) -> int:
-        """Get world width in tiles for compatibility."""
+        """Gets the world width in tiles (for compatibility)."""
         return self.config.world_width
     
     @property
     def height(self) -> int:
-        """Get world height in tiles for compatibility."""
+        """Gets the world height in tiles (for compatibility)."""
         return self.config.world_height
     
     @property
     def hours(self) -> int:
-        """Get current hour for compatibility."""
+        """Gets the current hour of the day (for compatibility)."""
         return self._hours
     
     @property
     def minutes(self) -> float:
-        """Get current minutes for compatibility."""
+        """Gets the current minute of the hour (for compatibility)."""
         return self._minutes
     
     @property
     def days(self) -> int:
-        """Get current days for compatibility."""
+        """Gets the current day count (for compatibility)."""
         return self._days
     
     @property
     def spawn_points(self) -> List[Tuple[int, int]]:
-        """Get spawn points for compatibility."""
+        """Gets spawn points for compatibility."""
         # Generate spawn points in the center of the world
         center_x = self.config.world_width // 2
         center_y = self.config.world_height // 2
@@ -427,35 +597,40 @@ class ModernWorld:
     
     @spawn_points.setter
     def spawn_points(self, value: List[Tuple[int, int]]):
-        """Set spawn points for compatibility (no-op in modern system)."""
+        """Sets spawn points for compatibility (no-op in modern system)."""
         pass
     
     @property
     def graphics(self) -> Optional[SynapstexGraphics]:
-        """Get graphics reference for compatibility."""
+        """Gets graphics reference for compatibility."""
         return getattr(self, '_graphics', None)
     
     @graphics.setter
     def graphics(self, value: SynapstexGraphics):
-        """Set graphics reference for compatibility."""
+        """Sets graphics reference for compatibility."""
         self._graphics = value
     
     def get_centered_spawn(self) -> Tuple[int, int]:
-        """Get centered spawn point for compatibility."""
+        """Gets a centered spawn point for compatibility."""
         center_x = self.config.world_width // 2
         center_y = self.config.world_height // 2
         return (center_x, center_y)
     
     def init_grass(self):
-        """Initialize grass for compatibility (already done in constructor)."""
+        """Initializes grass for compatibility (no-op, done in constructor)."""
         pass
     
     def _generate_tile_variations(self, chunk):
-        """Generate tile variations for compatibility (no-op in modern system)."""
+        """Generates tile variations for compatibility (no-op in modern system)."""
         pass
     
     def get_day_phase(self) -> str:
-        """Get current day phase for compatibility."""
+        """
+        Gets the current phase of the day (e.g., morning, day, night).
+
+        Returns:
+            str: The name of the current day phase.
+        """
         if 6 <= self._hours < 12:
             return "morning"
         elif 12 <= self._hours < 18:

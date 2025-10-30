@@ -22,9 +22,22 @@ sys.path.insert(0, str(tools_dir))
 from audio_manager import AudioManager
 
 class AssetManager:
-    """Unified asset management system"""
+    """
+    A unified system for managing all game assets.
+
+    This class orchestrates various asset-related tasks, including generation,
+    validation, organization, and backups, by coordinating specialized sub-managers
+    for different asset types like sprites and audio.
+    """
     
     def __init__(self, project_root: str = "."):
+        """
+        Initializes the AssetManager.
+
+        Args:
+            project_root (str, optional): The root directory of the project.
+                                          Defaults to ".".
+        """
         self.project_root = Path(project_root)
         self.assets_dir = self.project_root / "assets"
         
@@ -42,13 +55,24 @@ class AssetManager:
         }
     
     def print_header(self, title: str):
-        """Print a formatted header"""
+        """
+        Prints a formatted header to the console for better readability.
+
+        Args:
+            title (str): The title to be displayed in the header.
+        """
         print(f"\n{'='*70}")
         print(f" {title}")
         print(f"{'='*70}")
     
     def check_all_assets(self) -> Dict[str, bool]:
-        """Check status of all assets"""
+        """
+        Checks the status of all assets to identify any missing files.
+
+        Returns:
+            Dict[str, bool]: A dictionary summarizing the status of different
+                             asset types and the overall status.
+        """
         self.print_header("Asset Status Check")
         
         results = {}
@@ -74,7 +98,16 @@ class AssetManager:
         return results
     
     def generate_all_assets(self, force: bool = False) -> bool:
-        """Generate all missing assets"""
+        """
+        Generates all missing assets, including sprites and audio.
+
+        Args:
+            force (bool, optional): If True, existing assets will be overwritten.
+                                    Defaults to False.
+
+        Returns:
+            bool: True if all assets were generated successfully, False otherwise.
+        """
         self.print_header("Generating All Assets")
         
         success = True
@@ -100,7 +133,12 @@ class AssetManager:
         return success
     
     def validate_all_assets(self) -> bool:
-        """Validate all assets"""
+        """
+        Validates all existing assets to ensure they meet project standards.
+
+        Returns:
+            bool: True if all assets are valid, False otherwise.
+        """
         self.print_header("Validating All Assets")
         
         success = True
@@ -121,7 +159,12 @@ class AssetManager:
         return success
     
     def organize_assets(self) -> bool:
-        """Organize and clean up asset structure"""
+        """
+        Ensures the asset directory structure is correctly set up.
+
+        Returns:
+            bool: True if the organization was successful, False otherwise.
+        """
         self.print_header("Organizing Asset Structure")
         
         try:
@@ -148,7 +191,12 @@ class AssetManager:
             return False
     
     def create_asset_preview(self) -> bool:
-        """Create preview images for all assets"""
+        """
+        Creates preview images for visual assets like sprite sheets.
+
+        Returns:
+            bool: True if previews were created successfully, False otherwise.
+        """
         self.print_header("Creating Asset Previews")
         
         success = True
@@ -165,7 +213,12 @@ class AssetManager:
         return success
     
     def backup_assets(self) -> bool:
-        """Create backups of all assets"""
+        """
+        Creates backups of existing assets.
+
+        Returns:
+            bool: True if backups were created successfully, False otherwise.
+        """
         self.print_header("Creating Asset Backups")
         
         success = True
@@ -181,7 +234,9 @@ class AssetManager:
         return success
     
     def print_statistics(self):
-        """Print comprehensive statistics"""
+        """
+        Prints a summary of the actions performed by the AssetManager.
+        """
         self.print_header("Asset Management Statistics")
         
         print(f"🎨 Sprites Generated: {self.stats['sprites_generated']}")
@@ -199,7 +254,12 @@ class AssetManager:
             print(f"\n⚠️  {self.stats['issues_found']} issues need attention.")
 
 def main():
-    """Main CLI interface"""
+    """
+    Main function for the command-line interface of the AssetManager.
+
+    This function parses command-line arguments and executes the corresponding
+    asset management tasks.
+    """
     parser = argparse.ArgumentParser(description="Runic Lands Unified Asset Manager")
     
     # Main operations

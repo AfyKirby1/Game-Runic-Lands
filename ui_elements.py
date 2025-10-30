@@ -1,7 +1,22 @@
 import pygame
 
+"""This module provides a collection of UI elements for Pygame applications."""
+
 class Label:
+    """A simple text label UI element."""
     def __init__(self, text, x, y, font, color, align='center', tag=None):
+        """Initializes the Label object.
+
+        Args:
+            text (str): The text to display.
+            x (int): The x-coordinate for the label's position.
+            y (int): The y-coordinate for the label's position.
+            font (pygame.font.Font): The font to use for the text.
+            color (tuple): The color of the text.
+            align (str, optional): The text alignment ('center', 'left', 'right').
+                Defaults to 'center'.
+            tag (str, optional): An optional tag for identifying the label. Defaults to None.
+        """
         self.font = font
         self.color = color
         self.tag = tag
@@ -12,12 +27,22 @@ class Label:
         self.set_text(text) # This will create image and rect
 
     def set_text(self, text):
+        """Sets the text of the label.
+
+        Args:
+            text (str): The new text to display.
+        """
         self.text = text
         self.image = self.font.render(self.text, True, self.color)
         self._update_rect(self._initial_x, self._initial_y) # Recalculate position based on alignment
 
     def _update_rect(self, x, y):
-        """Calculates the rect based on alignment and the provided x, y"""
+        """Calculates the rect based on alignment and the provided x, y.
+
+        Args:
+            x (int): The x-coordinate to use for alignment.
+            y (int): The y-coordinate to use for alignment.
+        """
         self.rect = self.image.get_rect()
         if self.align == 'center':
             self.rect.center = (x, y)
@@ -29,14 +54,38 @@ class Label:
             self.rect.center = (x, y)
 
     def draw(self, screen):
+        """Draws the label on the screen.
+
+        Args:
+            screen (pygame.Surface): The surface to draw the label on.
+        """
         screen.blit(self.image, self.rect)
         
     def is_button(self):
-        """Helper method to check if an element is a button"""
+        """Checks if the element is a button.
+
+        Returns:
+            bool: Always False for a Label.
+        """
         return False
 
 class Button:
+    """A clickable button UI element."""
     def __init__(self, text, x, y, width, height, font, colors, action=None, tag=None):
+        """Initializes the Button object.
+
+        Args:
+            text (str): The text to display on the button.
+            x (int): The x-coordinate of the button's top-left corner.
+            y (int): The y-coordinate of the button's top-left corner.
+            width (int): The width of the button.
+            height (int): The height of the button.
+            font (pygame.font.Font): The font to use for the text.
+            colors (dict): A dictionary of colors for the button's states.
+            action (callable, optional): The function to call when the button is clicked.
+                Defaults to None.
+            tag (str, optional): An optional tag for identifying the button. Defaults to None.
+        """
         self.text = text
         self.rect = pygame.Rect(x, y, width, height)
         self.font = font
@@ -50,6 +99,11 @@ class Button:
         self.text_rect = self.text_surface.get_rect(center=self.rect.center)
 
     def draw(self, screen):
+        """Draws the button on the screen.
+
+        Args:
+            screen (pygame.Surface): The surface to draw the button on.
+        """
         # Draw button background
         color = self.colors['button_hover'] if self.is_hovered else self.colors['button']
         pygame.draw.rect(screen, color, self.rect)
@@ -61,28 +115,68 @@ class Button:
         screen.blit(self.text_surface, self.text_rect)
         
     def set_text(self, new_text):
+        """Sets the text of the button.
+
+        Args:
+            new_text (str): The new text to display.
+        """
         self.text = new_text
         self.text_surface = self.font.render(new_text, True, self.colors['button_text'])
         self.text_rect = self.text_surface.get_rect(center=self.rect.center)
 
     def collidepoint(self, pos):
+        """Checks if a point is inside the button's rect.
+
+        Args:
+            pos (tuple): The (x, y) coordinates of the point.
+
+        Returns:
+            bool: True if the point is inside the button, False otherwise.
+        """
         return self.rect.collidepoint(pos)
 
     def is_button(self):
-        """Helper method to check if an element is a button"""
+        """Checks if the element is a button.
+
+        Returns:
+            bool: Always True for a Button.
+        """
         return True
 
 class ToggleButton(Button):
+    """A button that can be toggled on and off."""
     def __init__(self, initial_state, x, y, w, h, font, colors, action=None, tag=None):
+        """Initializes the ToggleButton object.
+
+        Args:
+            initial_state (bool): The initial state of the button (True for On, False for Off).
+            x (int): The x-coordinate of the button's top-left corner.
+            y (int): The y-coordinate of the button's top-left corner.
+            w (int): The width of the button.
+            h (int): The height of the button.
+            font (pygame.font.Font): The font to use for the text.
+            colors (dict): A dictionary of colors for the button's states.
+            action (callable, optional): The function to call when the button is toggled.
+                Defaults to None.
+            tag (str, optional): An optional tag for identifying the button. Defaults to None.
+        """
         super().__init__("On" if initial_state else "Off", x, y, w, h, font, colors, action, tag)
         self.is_on = initial_state
 
     def toggle(self):
+        """Toggles the state of the button."""
         self.is_on = not self.is_on
         self.set_text("On" if self.is_on else "Off")
 
     def handle_event(self, event):
-        """Handle mouse events for the toggle button"""
+        """Handles mouse events for the toggle button.
+
+        Args:
+            event (pygame.event.Event): The event to handle.
+
+        Returns:
+            bool: True if the button was toggled, False otherwise.
+        """
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left click
             mouse_pos = pygame.mouse.get_pos()
             if self.rect.collidepoint(mouse_pos):
@@ -93,6 +187,11 @@ class ToggleButton(Button):
         return False
 
     def draw(self, screen):
+        """Draws the toggle button on the screen.
+
+        Args:
+            screen (pygame.Surface): The surface to draw the button on.
+        """
         # Change color based on state and hover
         if self.is_on:
             base_color = self.colors.get('toggle_on', (50, 150, 50))
@@ -107,7 +206,24 @@ class ToggleButton(Button):
         screen.blit(self.text_surface, self.text_rect)
 
 class Slider:
+    """A slider UI element for selecting a value within a range."""
     def __init__(self, x, y, w, h, min_val, max_val, current_val, colors, action=None, step=0.1, tag=None):
+        """Initializes the Slider object.
+
+        Args:
+            x (int): The x-coordinate of the slider's top-left corner.
+            y (int): The y-coordinate of the slider's center.
+            w (int): The width of the slider.
+            h (int): The height of the slider.
+            min_val (float): The minimum value of the slider.
+            max_val (float): The maximum value of the slider.
+            current_val (float): The initial value of the slider.
+            colors (dict): A dictionary of colors for the slider's components.
+            action (callable, optional): The function to call when the slider's value changes.
+                Defaults to None.
+            step (float, optional): The step interval for the slider's value. Defaults to 0.1.
+            tag (str, optional): An optional tag for identifying the slider. Defaults to None.
+        """
         self.rect = pygame.Rect(x, y - h // 2, w, h) # Slider track rect
         self.min_val = min_val
         self.max_val = max_val
@@ -123,9 +239,18 @@ class Slider:
 
     @property
     def value(self):
+        """Gets the current value of the slider."""
         return self._value
 
     def set_value(self, value):
+        """Sets the value of the slider.
+
+        Args:
+            value (float): The new value for the slider.
+
+        Returns:
+            bool: True if the value was changed, False otherwise.
+        """
         new_value = max(self.min_val, min(self.max_val, value))
         # Snap to steps if step is defined
         if self.step > 0:
@@ -140,6 +265,7 @@ class Slider:
         return False
 
     def _update_handle_rect(self):
+        """Updates the position of the slider's handle."""
          # Calculate handle position based on value
         # Avoid division by zero if min_val == max_val
         range_val = (self.max_val - self.min_val)
@@ -154,6 +280,14 @@ class Slider:
 
 
     def handle_event(self, event):
+        """Handles mouse events for the slider.
+
+        Args:
+            event (pygame.event.Event): The event to handle.
+
+        Returns:
+            bool: True if the slider's value was updated, False otherwise.
+        """
         updated = False
         if event.type == pygame.MOUSEBUTTONDOWN:
             # Check if click is on or near the handle OR the track
@@ -170,6 +304,14 @@ class Slider:
         return updated
 
     def _update_value_from_pos(self, mouse_x):
+        """Updates the slider's value based on the mouse position.
+
+        Args:
+            mouse_x (int): The x-coordinate of the mouse.
+
+        Returns:
+            bool: True if the value was changed, False otherwise.
+        """
         # Calculate value based on mouse position relative to slider track
         relative_x = max(0, min(self.rect.width, mouse_x - self.rect.x))
         ratio = relative_x / self.rect.width if self.rect.width > 0 else 0
@@ -177,6 +319,11 @@ class Slider:
         return self.set_value(new_value) # Use set_value to handle clamping and stepping
 
     def draw(self, screen):
+        """Draws the slider on the screen.
+
+        Args:
+            screen (pygame.Surface): The surface to draw the slider on.
+        """
         # Draw slider track
         track_color = self.colors.get('slider_bg', (50, 50, 100))
         pygame.draw.rect(screen, track_color, self.rect, border_radius=self.rect.height // 2)
@@ -188,5 +335,9 @@ class Slider:
         pygame.draw.circle(screen, border_color, self.handle_rect.center, self.handle_radius // 2, 1)
         
     def is_button(self):
-        """Helper method to check if an element is a button"""
+        """Checks if the element is a button.
+
+        Returns:
+            bool: Always False for a Slider.
+        """
         return False
