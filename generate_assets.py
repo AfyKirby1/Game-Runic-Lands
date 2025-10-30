@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-"""
-Asset Generation Script
-Run this script to generate all game assets.
+"""Asset Generation Script.
+
+This script provides a command-line interface to generate various game assets,
+including sprites and audio. It allows for selective generation of asset types.
 """
 
 import argparse

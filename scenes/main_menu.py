@@ -6,7 +6,21 @@ from systems.synapstex import SynapstexGraphics, ParticleType
 import os
 
 class MainMenu:
+    """
+    Manages the main menu scene of the game.
+
+    This class is responsible for displaying the main menu, handling user input
+    for menu navigation, and triggering actions like starting the game, opening
+    options, or quitting. It also manages background effects like particles
+    and fireworks.
+    """
     def __init__(self, graphics: SynapstexGraphics):
+        """
+        Initializes the MainMenu.
+
+        Args:
+            graphics (SynapstexGraphics): The main graphics engine instance.
+        """
         self.graphics = graphics
         self.screen_size = self.graphics.screen_size
         
@@ -60,7 +74,10 @@ class MainMenu:
         self.leaf_timer = 0
 
     def _initialize_particle_effects(self):
-        """Initialize all the different particle effects for the main menu"""
+        """
+        Initializes and emits a variety of particle effects for the main menu
+        background, creating a visually rich and dynamic environment.
+        """
         # Emit initial stars across the screen
         for _ in range(25):
              self.graphics.particle_system.emit(
@@ -141,7 +158,19 @@ class MainMenu:
              )
 
     def handle_event(self, event: pygame.event.Event) -> Optional[str]:
-        """Handle pygame events and return action if needed."""
+        """
+        Handles user input for the main menu.
+
+        This method processes keyboard and mouse events to navigate the menu
+        and select options.
+
+        Args:
+            event (pygame.event.Event): The Pygame event to handle.
+
+        Returns:
+            Optional[str]: An action string ('play', 'options', 'quit') if an
+                           option is selected, otherwise None.
+        """
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
                 self.selected_index = (self.selected_index - 1) % len(self.menu_items)
@@ -177,7 +206,12 @@ class MainMenu:
         return None
 
     def update(self, dt: float):
-        """Update game state."""
+        """
+        Updates the state of the main menu, including animations and effects.
+
+        Args:
+            dt (float): The time delta since the last update, in seconds.
+        """
         self.fireworks.update(dt)
         self.graphics.particle_system.update(dt)
 
@@ -274,7 +308,12 @@ class MainMenu:
             self.leaf_timer = 0
 
     def draw(self, screen: pygame.Surface):
-        """Draw the menu to the screen."""
+        """
+        Draws the main menu to the screen.
+
+        Args:
+            screen (pygame.Surface): The screen surface to draw on.
+        """
         # Draw background
         screen.blit(self.background, (0, 0))
         
@@ -300,11 +339,19 @@ class MainMenu:
             screen.blit(text, rect)
 
     def cleanup(self):
-        """Clean up resources."""
+        """
+        Cleans up resources used by the main menu.
+        """
         self.fireworks.clear()
 
     def start_menu_music(self):
-        """Start menu music using the options system"""
+        """
+        Starts playing the main menu music.
+
+        This method uses the `OptionsSystem` to handle music playback, ensuring
+        that volume settings are respected and providing fallbacks if seamless
+        music playback fails.
+        """
         if self.options_system:
             # First stop any currently playing music
             self.options_system.stop_music()

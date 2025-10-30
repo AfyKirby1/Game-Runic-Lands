@@ -1,8 +1,11 @@
+"""This module defines the menu system for the game."""
+
 import pygame
 import sys
 from enum import Enum, auto
 
 class GameState(Enum):
+    """Enumeration for the different states of the game."""
     MAIN_MENU = auto()
     OPTIONS = auto()
     SINGLE_PLAYER = auto()
@@ -10,13 +13,29 @@ class GameState(Enum):
     QUIT = auto()
 
 class MenuItem:
+    """Represents a single item in the menu."""
     def __init__(self, text, action, position, size=(200, 50)):
+        """Initializes a MenuItem object.
+
+        Args:
+            text (str): The text to display on the menu item.
+            action: The action to perform when the item is selected.
+            position (Tuple[int, int]): The position of the menu item.
+            size (Tuple[int, int], optional): The size of the menu item.
+                Defaults to (200, 50).
+        """
         self.text = text
         self.action = action
         self.rect = pygame.Rect(position[0], position[1], size[0], size[1])
         self.is_hovered = False
         
     def draw(self, screen, font):
+        """Draws the menu item on the screen.
+
+        Args:
+            screen (pygame.Surface): The surface to draw the item on.
+            font (pygame.font.Font): The font to use for the item's text.
+        """
         # Button colors
         button_color = (100, 100, 255) if self.is_hovered else (70, 70, 200)
         text_color = (255, 255, 255)
@@ -31,7 +50,14 @@ class MenuItem:
         screen.blit(text_surface, text_rect)
 
 class MenuSystem:
+    """Manages the main menu and its interactions."""
     def __init__(self, screen_size, options_system=None):
+        """Initializes the MenuSystem.
+
+        Args:
+            screen_size (Tuple[int, int]): The size of the screen.
+            options_system (any, optional): A reference to the options system. Defaults to None.
+        """
         self.screen_size = screen_size
         self.state = GameState.MAIN_MENU
         self.font = pygame.font.Font(None, 36)
@@ -42,7 +68,7 @@ class MenuSystem:
         # Don't start music here - let the game handle it initially
         
     def reset(self):
-        """Reset the menu system to initial state"""
+        """Resets the menu system to its initial state."""
         self.state = GameState.MAIN_MENU
         # Rebuild menu layout in case screen size changed
         self.setup_main_menu()
@@ -54,7 +80,7 @@ class MenuSystem:
         return self.state
     
     def start_menu_music(self):
-        """Start menu music using the section queue system for seamless playback"""
+        """Starts the menu music."""
         if hasattr(self, 'options') and self.options:
             # First stop any currently playing music to ensure clean start
             self.options.stop_music()
@@ -80,11 +106,16 @@ class MenuSystem:
         return False
     
     def resize(self, new_screen_size):
-        """Recalculate menu positions when screen size changes"""
+        """Resizes the menu to fit a new screen size.
+
+        Args:
+            new_screen_size (Tuple[int, int]): The new size of the screen.
+        """
         self.screen_size = new_screen_size
         self.setup_main_menu()  # Recalculate menu item positions
         
     def setup_main_menu(self):
+        """Sets up the layout of the main menu."""
         # Use exact center of screen width for better positioning
         button_width = 200
         button_height = 50
@@ -116,6 +147,14 @@ class MenuSystem:
         ]
     
     def handle_input(self, events):
+        """Handles user input for the menu.
+
+        Args:
+            events (list): A list of Pygame events.
+
+        Returns:
+            GameState: The current game state.
+        """
         mouse_pos = pygame.mouse.get_pos()
         
         for item in self.menu_items:
@@ -131,6 +170,11 @@ class MenuSystem:
         return self.state
     
     def draw(self, screen):
+        """Draws the menu on the screen.
+
+        Args:
+            screen (pygame.Surface): The surface to draw the menu on.
+        """
         # Fill background with a dark color
         screen.fill((20, 20, 40))
         

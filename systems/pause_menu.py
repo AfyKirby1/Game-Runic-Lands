@@ -3,7 +3,21 @@ from pygame import Surface, Rect
 from systems.menu import GameState 
 
 class PauseMenu:
+    """
+    A pause menu that can be displayed over the game screen.
+
+    This class handles the creation, rendering, and input handling for the
+    in-game pause menu, allowing the player to resume, access options,
+    or quit to the main menu.
+    """
     def __init__(self, screen_width: int, screen_height: int):
+        """
+        Initializes the PauseMenu.
+
+        Args:
+            screen_width (int): The width of the screen.
+            screen_height (int): The height of the screen.
+        """
         self.screen_size = (screen_width, screen_height)
         self.width = 300
         self.height = 400
@@ -22,7 +36,12 @@ class PauseMenu:
         self._setup_options()
         
     def resize(self, new_screen_size):
-        """Recalculate menu position and option layout on screen resize."""
+        """
+        Recalculates menu position and option layout on screen resize.
+
+        Args:
+            new_screen_size (Tuple[int, int]): The new screen dimensions.
+        """
         self.screen_size = new_screen_size
         # Recenter the menu rectangle
         self.rect.center = (new_screen_size[0] // 2, new_screen_size[1] // 2)
@@ -31,7 +50,12 @@ class PauseMenu:
         print(f"DEBUG: PauseMenu resized to {new_screen_size}")
         
     def _setup_options(self):
-        """Set up menu options and their rectangles relative to the menu rect."""
+        """
+        Sets up the menu options and their rectangles relative to the menu rect.
+
+        This internal method defines the text, action, and position for each
+        button in the pause menu.
+        """
         self.options = [
             {"text": "Resume", "action": "resume"},
             {"text": "Options", "action": "options"},
@@ -54,7 +78,12 @@ class PauseMenu:
             )
         
     def toggle(self):
-        """Toggle the visibility of the pause menu"""
+        """
+        Toggles the visibility of the pause menu.
+
+        Returns:
+            bool: The new visibility state of the menu.
+        """
         self.is_visible = not self.is_visible
         if self.is_visible:
             # Always reset selection to top when opening
@@ -62,8 +91,17 @@ class PauseMenu:
         return self.is_visible
         
     def handle_input(self, event):
-        """Handle a single event for the pause menu
-        Returns: action string if an action is triggered, None otherwise
+        """
+        Handles a single event for the pause menu.
+
+        This method processes keyboard and mouse inputs to navigate the menu
+        and trigger actions.
+
+        Args:
+            event (pygame.event.Event): The event to handle.
+
+        Returns:
+            Optional[str]: An action string if an action is triggered, otherwise None.
         """
         if not self.is_visible:
             return None
@@ -111,7 +149,12 @@ class PauseMenu:
         return None
         
     def draw(self, screen: Surface):
-        """Draw the pause menu on the given surface"""
+        """
+        Draws the pause menu on the given surface.
+
+        Args:
+            screen (pygame.Surface): The screen surface to draw on.
+        """
         if not self.is_visible:
             return
             

@@ -1,6 +1,8 @@
-"""
-Asset Generator Utilities
-This module provides functions to generate game assets programmatically.
+"""Asset Generator Utilities.
+
+This module provides a set of functions for programmatically generating game assets,
+including character sprites, animations, and sound effects. It allows for the
+creation of a variety of assets with customizable parameters.
 """
 
 import os
@@ -74,12 +76,29 @@ CHARACTER_SETTINGS = {
 SAMPLE_RATE = 44100  # 44.1 kHz
 
 def ensure_directory(path: str):
-    """Create directory if it doesn't exist"""
+    """Ensures that a directory exists, creating it if necessary.
+
+    Args:
+        path (str): The path to the directory.
+    """
     os.makedirs(path, exist_ok=True)
 
 # Sprite Generation Functions
 def generate_base_character(output_dir: str = "assets/sprites/characters/player/png", custom_settings: Dict = None):
-    """Generate the base character sprite with enhanced human-like features and customizable colors"""
+    """Generates a base character sprite.
+
+    This function creates a character sprite with customizable features,
+    including skin tone, hair color, clothing, and more.
+
+    Args:
+        output_dir (str, optional): The directory to save the generated sprite.
+            Defaults to "assets/sprites/characters/player/png".
+        custom_settings (Dict, optional): A dictionary of custom settings for the character's
+            appearance. Defaults to None.
+
+    Returns:
+        Image.Image: The generated character sprite.
+    """
     ensure_directory(output_dir)
     
     # Use custom settings or defaults
@@ -249,7 +268,17 @@ def generate_base_character(output_dir: str = "assets/sprites/characters/player/
     return combined
 
 def draw_hair(img: Image.Image, hair_color: Tuple, hair_style: str, x: int, y: int, head_width: int, head_height: int):
-    """Draw hair based on style"""
+    """Draws hair on a character sprite.
+
+    Args:
+        img (Image.Image): The image to draw the hair on.
+        hair_color (Tuple): The color of the hair.
+        hair_style (str): The style of the hair (e.g., 'short', 'long', 'bald').
+        x (int): The x-coordinate of the top-left corner of the head.
+        y (int): The y-coordinate of the top-left corner of the head.
+        head_width (int): The width of the head.
+        head_height (int): The height of the head.
+    """
     if hair_style == "bald":
         return
     
@@ -284,7 +313,15 @@ def draw_hair(img: Image.Image, hair_color: Tuple, hair_style: str, x: int, y: i
                     img.putpixel((px, py), hair_color)
 
 def draw_eyes(img: Image.Image, eye_color: Tuple, x: int, y: int, head_width: int):
-    """Draw eyes with color"""
+    """Draws eyes on a character sprite.
+
+    Args:
+        img (Image.Image): The image to draw the eyes on.
+        eye_color (Tuple): The color of the eyes.
+        x (int): The x-coordinate of the top-left corner of the head.
+        y (int): The y-coordinate of the top-left corner of the head.
+        head_width (int): The width of the head.
+    """
     # Left eye
     for dx in range(2):
         for dy in range(2):
@@ -300,7 +337,16 @@ def draw_eyes(img: Image.Image, eye_color: Tuple, x: int, y: int, head_width: in
                 img.putpixel((px, py), eye_color)
 
 def generate_idle_animation(base_sprite: Image.Image, output_dir: str = "assets/sprites/characters/player/png"):
-    """Generate idle animation frames for the character"""
+    """Generates an idle animation sprite sheet.
+
+    Args:
+        base_sprite (Image.Image): The base character sprite to animate.
+        output_dir (str, optional): The directory to save the generated sprite sheet.
+            Defaults to "assets/sprites/characters/player/png".
+
+    Returns:
+        Image.Image: The generated idle animation sprite sheet.
+    """
     width, height = base_sprite.size
     
     # Create the sprite sheet with idle animation frames (4 frames)
@@ -341,7 +387,16 @@ def generate_idle_animation(base_sprite: Image.Image, output_dir: str = "assets/
     return sprite_sheet
 
 def generate_walking_animation(base_sprite: Image.Image, output_dir: str = "assets/sprites/characters/player/png"):
-    """Generate walking animation frames for the character"""
+    """Generates a walking animation sprite sheet.
+
+    Args:
+        base_sprite (Image.Image): The base character sprite to animate.
+        output_dir (str, optional): The directory to save the generated sprite sheet.
+            Defaults to "assets/sprites/characters/player/png".
+
+    Returns:
+        Image.Image: The generated walking animation sprite sheet.
+    """
     width, height = base_sprite.size
     
     # Create walking animation (4 frames)
@@ -420,7 +475,16 @@ def generate_walking_animation(base_sprite: Image.Image, output_dir: str = "asse
     return walk_sheet
 
 def generate_attack_animation(base_sprite: Image.Image, output_dir: str = "assets/sprites/characters/player/png"):
-    """Generate attack animation frames for the character"""
+    """Generates an attack animation sprite sheet.
+
+    Args:
+        base_sprite (Image.Image): The base character sprite to animate.
+        output_dir (str, optional): The directory to save the generated sprite sheet.
+            Defaults to "assets/sprites/characters/player/png".
+
+    Returns:
+        Image.Image: The generated attack animation sprite sheet.
+    """
     width, height = base_sprite.size
     
     # Create attack animation (4 frames)
@@ -513,7 +577,12 @@ def generate_attack_animation(base_sprite: Image.Image, output_dir: str = "asset
 
 # Audio Generation Functions
 def generate_menu_select_sound(output_dir: str = "assets/audio"):
-    """Generate a menu selection sound effect"""
+    """Generates a menu selection sound effect.
+
+    Args:
+        output_dir (str, optional): The directory to save the generated sound file.
+            Defaults to "assets/audio".
+    """
     ensure_directory(output_dir)
     
     duration = 0.1  # 100 ms
@@ -532,7 +601,12 @@ def generate_menu_select_sound(output_dir: str = "assets/audio"):
     wavfile.write(f"{output_dir}/menu_select.wav", SAMPLE_RATE, audio)
 
 def generate_menu_click_sound(output_dir: str = "assets/audio"):
-    """Generate a menu click sound effect"""
+    """Generates a menu click sound effect.
+
+    Args:
+        output_dir (str, optional): The directory to save the generated sound file.
+            Defaults to "assets/audio".
+    """
     ensure_directory(output_dir)
     
     duration = 0.15  # 150 ms
@@ -557,7 +631,12 @@ def generate_menu_click_sound(output_dir: str = "assets/audio"):
     wavfile.write(f"{output_dir}/menu_click.wav", SAMPLE_RATE, audio)
 
 def generate_attack_sound(output_dir: str = "assets/audio"):
-    """Generate an attack sound effect"""
+    """Generates an attack sound effect.
+
+    Args:
+        output_dir (str, optional): The directory to save the generated sound file.
+            Defaults to "assets/audio".
+    """
     ensure_directory(output_dir)
     
     duration = 0.3  # 300 ms
@@ -593,7 +672,15 @@ def generate_attack_sound(output_dir: str = "assets/audio"):
     wavfile.write(f"{output_dir}/attack.wav", SAMPLE_RATE, audio)
 
 def generate_background_music(filename: str, duration: float = 10.0, base_freq: float = 220, output_dir: str = "assets/audio"):
-    """Generate background music"""
+    """Generates a background music track.
+
+    Args:
+        filename (str): The name of the output file.
+        duration (float, optional): The duration of the music in seconds. Defaults to 10.0.
+        base_freq (float, optional): The base frequency for the music. Defaults to 220.
+        output_dir (str, optional): The directory to save the generated music file.
+            Defaults to "assets/audio".
+    """
     ensure_directory(output_dir)
     
     # Create a simple looping melody
@@ -679,7 +766,24 @@ def generate_custom_character(skin_tone: str = "skin_medium", hair_color: str = 
                             shoes_color: str = "clothing_black", eye_color: str = "eye_brown",
                             hair_style: str = "medium", gender: str = "male", age: str = "adult",
                             output_dir: str = "assets/sprites/characters/player/png"):
-    """Generate a custom character with specified appearance settings"""
+    """Generates a custom character with specified appearance settings.
+
+    Args:
+        skin_tone (str, optional): The skin tone of the character. Defaults to "skin_medium".
+        hair_color (str, optional): The hair color of the character. Defaults to "hair_brown".
+        shirt_color (str, optional): The shirt color of the character. Defaults to "clothing_brown".
+        pants_color (str, optional): The pants color of the character. Defaults to "clothing_gray".
+        shoes_color (str, optional): The shoes color of the character. Defaults to "clothing_black".
+        eye_color (str, optional): The eye color of the character. Defaults to "eye_brown".
+        hair_style (str, optional): The hair style of the character. Defaults to "medium".
+        gender (str, optional): The gender of the character. Defaults to "male".
+        age (str, optional): The age of the character. Defaults to "adult".
+        output_dir (str, optional): The directory to save the generated sprite.
+            Defaults to "assets/sprites/characters/player/png".
+
+    Returns:
+        Image.Image: The generated character sprite.
+    """
     custom_settings = {
         "skin_tone": skin_tone,
         "hair_color": hair_color,
@@ -705,7 +809,15 @@ def generate_custom_character(skin_tone: str = "skin_medium", hair_color: str = 
     return base_sprite
 
 def generate_random_character(output_dir: str = "assets/sprites/characters/player/png"):
-    """Generate a random character with random appearance settings"""
+    """Generates a character with random appearance settings.
+
+    Args:
+        output_dir (str, optional): The directory to save the generated sprite.
+            Defaults to "assets/sprites/characters/player/png".
+
+    Returns:
+        Image.Image: The generated character sprite.
+    """
     import random
     
     skin_tones = ["skin_pale", "skin_light", "skin_medium", "skin_tan", "skin_dark", "skin_very_dark"]
@@ -743,7 +855,7 @@ def generate_random_character(output_dir: str = "assets/sprites/characters/playe
     return base_sprite
 
 def generate_all_game_assets():
-    """Generate all game assets at once"""
+    """Generates all game assets, including sprites and audio."""
     print("Generating character sprites...")
     base_sprite = generate_base_character()
     generate_idle_animation(base_sprite)

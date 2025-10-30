@@ -22,58 +22,104 @@ SAVE_DIRECTORY = "saves"
 BACKUP_DIRECTORY = os.path.join(SAVE_DIRECTORY, "backups")
 
 class SaveCorruptionError(Exception):
-    """Exception raised when a save file is detected as corrupt"""
+    """Exception raised when a save file is detected as corrupt."""
     pass
 
 class VersionMismatchError(Exception):
-    """Exception raised when a save file version doesn't match the current version"""
+    """
+    Exception raised when a save file version doesn't match the current version.
+    """
     pass
 
 class SaveManager:
     """
-    SaveManager handles saving and loading game states with protection against
-    data corruption and version compatibility.
-    
-    Features:
-    - Save/load game state including world, player, and game settings
-    - Automatic checksums to detect data corruption
-    - Version tracking for backward compatibility
-    - Automatic backups of save files
-    - Compression to reduce file size
+    Handles saving and loading game states with protection against data corruption.
+
+    This class provides a robust system for managing game saves, featuring
+    automatic backups, data integrity checks via checksums, version tracking for
+    migrations, and data compression.
     """
     
     def __init__(self):
-        """Initialize the save manager and ensure directories exist"""
+        """
+        Initializes the SaveManager.
+
+        Ensures that the necessary save and backup directories exist.
+        """
         self._ensure_directories()
         self.current_save_slot = None
     
     def _ensure_directories(self):
-        """Create necessary directories if they don't exist"""
+        """
+        Creates the save and backup directories if they don't already exist.
+        """
         os.makedirs(SAVE_DIRECTORY, exist_ok=True)
         os.makedirs(BACKUP_DIRECTORY, exist_ok=True)
         
     def _get_save_path(self, slot_name: str) -> str:
-        """Get the file path for a save slot"""
+        """
+        Generates the file path for a given save slot name.
+
+        Args:
+            slot_name (str): The name of the save slot.
+
+        Returns:
+            str: The full path to the save file.
+        """
         sanitized_name = "".join([c for c in slot_name if c.isalnum() or c in " _-"])
         return os.path.join(SAVE_DIRECTORY, f"{sanitized_name}.sav")
     
     def _get_metadata_path(self, slot_name: str) -> str:
-        """Get the file path for save metadata"""
+        """
+        Generates the file path for a save slot's metadata.
+
+        Args:
+            slot_name (str): The name of the save slot.
+
+        Returns:
+            str: The full path to the metadata file.
+        """
         sanitized_name = "".join([c for c in slot_name if c.isalnum() or c in " _-"])
         return os.path.join(SAVE_DIRECTORY, f"{sanitized_name}.meta")
     
     def _get_backup_path(self, slot_name: str, timestamp: int = None) -> str:
-        """Get the file path for a backup"""
+        """
+        Generates a file path for a backup of a save slot.
+
+        Args:
+            slot_name (str): The name of the save slot.
+            timestamp (int, optional): A specific timestamp for the backup.
+                                       If None, the current time is used. Defaults to None.
+
+        Returns:
+            str: The full path for the backup file.
+        """
         sanitized_name = "".join([c for c in slot_name if c.isalnum() or c in " _-"])
         timestamp = timestamp or int(time.time())
         return os.path.join(BACKUP_DIRECTORY, f"{sanitized_name}_{timestamp}.bak")
     
     def _compute_checksum(self, data: bytes) -> str:
-        """Compute a checksum for the given data"""
+        """
+        Computes a SHA256 checksum for the given data.
+
+        Args:
+            data (bytes): The data to hash.
+
+        Returns:
+            str: The hexadecimal checksum string.
+        """
         return hashlib.sha256(data).hexdigest()
     
     def _create_save_data(self, game_state: Dict) -> Dict:
-        """Create a save data structure with metadata"""
+        """
+        Wraps the game state in a save data structure with metadata.
+
+        Args:
+            game_state (Dict): The dictionary containing the current game state.
+
+        Returns:
+            Dict: A dictionary structured for saving, including version and timestamp.
+        """
         return {
             "version": SAVE_VERSION,
             "timestamp": int(time.time()),
@@ -81,7 +127,19 @@ class SaveManager:
         }
     
     def _create_metadata(self, save_data: Dict, checksum: str) -> Dict:
-        """Create metadata for a save file"""
+        """
+        Creates a metadata dictionary for a save file.
+
+        This metadata includes quick-access info like player level and world seed,
+        avoiding the need to load the full save file.
+
+        Args:
+            save_data (Dict): The save data dictionary.
+            checksum (str): The checksum of the save data.
+
+        Returns:
+            Dict: A dictionary containing the save file's metadata.
+        """
         game_state = save_data["game_state"]
         world = game_state.get("world", {})
         player = game_state.get("player", {})
@@ -99,8 +157,15 @@ class SaveManager:
     
     def _validate_save_file(self, file_path: str, metadata_path: str) -> Tuple[bool, str]:
         """
-        Validate a save file against its metadata.
-        Returns (is_valid, error_message)
+        Validates a save file against its metadata, checking for corruption.
+
+        Args:
+            file_path (str): The path to the save file.
+            metadata_path (str): The path to the metadata file.
+
+        Returns:
+            Tuple[bool, str]: A tuple containing a boolean indicating validity
+                              and a message.
         """
         if not os.path.exists(file_path):
             return False, f"Save file not found: {file_path}"
@@ -135,8 +200,13 @@ class SaveManager:
     
     def create_backup(self, slot_name: str) -> Optional[str]:
         """
-        Create a backup of the current save file.
-        Returns the backup path if successful, None otherwise.
+        Creates a backup of a save file and its metadata.
+
+        Args:
+            slot_name (str): The name of the save slot to back up.
+
+        Returns:
+            Optional[str]: The path to the created backup file, or None on failure.
         """
         save_path = self._get_save_path(slot_name)
         if not os.path.exists(save_path):
@@ -156,12 +226,17 @@ class SaveManager:
     
     def save_game(self, slot_name: str, game_state: Dict) -> bool:
         """
-        Save the game state to the specified slot.
-        Returns True if successful, False otherwise.
-        
+        Saves the current game state to a specified slot.
+
+        This process includes creating a backup, serializing and compressing the
+        data, computing a checksum, and writing both the save and metadata files.
+
         Args:
-            slot_name: The name of the save slot
-            game_state: A dictionary containing game state (world, player, etc.)
+            slot_name (str): The name of the save slot.
+            game_state (Dict): A dictionary containing the full game state.
+
+        Returns:
+            bool: True if saving was successful, False otherwise.
         """
         try:
             # Create backup of existing save
@@ -200,18 +275,23 @@ class SaveManager:
     
     def load_game(self, slot_name: str) -> Dict:
         """
-        Load a game state from the specified slot.
-        
+        Loads a game state from the specified slot.
+
+        This method validates the save file and, if corruption is detected,
+        attempts to restore from the latest backup. It also handles migration
+        of older save file versions.
+
         Args:
-            slot_name: The name of the save slot
-            
+            slot_name (str): The name of the save slot to load.
+
         Returns:
-            Dict: The loaded game state
-            
+            Dict: The loaded game state.
+
         Raises:
-            SaveCorruptionError: If the save file is corrupted
-            VersionMismatchError: If the save version is incompatible
-            FileNotFoundError: If the save file doesn't exist
+            SaveCorruptionError: If the save file is corrupted and no valid
+                                 backup can be found.
+            VersionMismatchError: If the save version is incompatible.
+            FileNotFoundError: If the save file does not exist.
         """
         save_path = self._get_save_path(slot_name)
         metadata_path = self._get_metadata_path(slot_name)
@@ -247,7 +327,15 @@ class SaveManager:
             raise
     
     def _find_latest_backup(self, slot_name: str) -> Optional[str]:
-        """Find the latest backup for a save slot"""
+        """
+        Finds the most recent backup file for a given save slot.
+
+        Args:
+            slot_name (str): The name of the save slot.
+
+        Returns:
+            Optional[str]: The path to the latest backup, or None if none exist.
+        """
         backup_prefix = "".join([c for c in slot_name if c.isalnum() or c in " _-"]) + "_"
         backups = []
         
@@ -264,8 +352,14 @@ class SaveManager:
     
     def _restore_from_backup(self, slot_name: str, backup_path: str) -> Tuple[bool, str]:
         """
-        Restore a save file from a backup.
-        Returns (success, error_message)
+        Restores a save file and its metadata from a backup.
+
+        Args:
+            slot_name (str): The name of the save slot to restore.
+            backup_path (str): The path to the backup file.
+
+        Returns:
+            Tuple[bool, str]: A tuple indicating success and a message.
         """
         try:
             save_path = self._get_save_path(slot_name)
@@ -287,8 +381,16 @@ class SaveManager:
     
     def _migrate_save_data(self, save_data: Dict) -> Dict:
         """
-        Migrate save data from an older version to the current version.
-        Implement version-specific migrations here.
+        Migrates save data from an older version to the current version.
+
+        This method should be updated with migration logic when `SAVE_VERSION`
+        is incremented.
+
+        Args:
+            save_data (Dict): The save data from an older version.
+
+        Returns:
+            Dict: The migrated save data, updated to the current version.
         """
         current_version = save_data["version"]
         
@@ -306,8 +408,11 @@ class SaveManager:
     
     def get_save_slots(self) -> List[Dict[str, Any]]:
         """
-        Get a list of all available save slots with metadata.
-        Returns a list of dictionaries with slot information.
+        Retrieves a list of all available save slots with their metadata.
+
+        Returns:
+            List[Dict[str, Any]]: A list of dictionaries, each representing a
+                                  save slot with its metadata.
         """
         slots = []
         
@@ -341,8 +446,15 @@ class SaveManager:
     
     def delete_save(self, slot_name: str) -> bool:
         """
-        Delete a save slot and its metadata.
-        Returns True if successful, False otherwise.
+        Deletes a save slot, including its save file and metadata.
+
+        A final backup is created before deletion.
+
+        Args:
+            slot_name (str): The name of the save slot to delete.
+
+        Returns:
+            bool: True if deletion was successful, False otherwise.
         """
         try:
             # Create one final backup before deletion
@@ -370,8 +482,14 @@ class SaveManager:
     
     def cleanup_old_backups(self, max_backups_per_slot: int = 5) -> int:
         """
-        Remove old backups, keeping only the latest few for each slot.
-        Returns the number of backups removed.
+        Removes old backups, keeping a specified number of recent backups per slot.
+
+        Args:
+            max_backups_per_slot (int, optional): The number of backups to keep
+                                                 for each slot. Defaults to 5.
+
+        Returns:
+            int: The total number of backups removed.
         """
         # Group backups by slot name
         backup_groups = {}

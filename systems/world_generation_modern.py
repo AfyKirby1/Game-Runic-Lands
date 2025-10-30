@@ -23,7 +23,12 @@ from opensimplex import OpenSimplex
 
 
 class BiomeType(Enum):
-    """Biome types for world generation."""
+    """
+    Enumeration of different biome types that can be generated in the world.
+
+    Each biome type influences the terrain, features, and resources that
+    are generated within a chunk.
+    """
     PLAINS = "plains"
     FOREST = "forest"
     DESERT = "desert"
@@ -34,7 +39,11 @@ class BiomeType(Enum):
 
 
 class TerrainType(Enum):
-    """Terrain types for world generation."""
+    """
+    Enumeration of different terrain types for individual tiles.
+
+    The terrain type determines the visual appearance and properties of a tile.
+    """
     GRASS = "grass"
     DIRT = "dirt"
     SAND = "sand"
@@ -45,7 +54,9 @@ class TerrainType(Enum):
 
 
 class TreeType(Enum):
-    """Tree types for world generation."""
+    """
+    Enumeration of different tree types that can be placed in the world.
+    """
     OAK = 0
     PINE = 1
     MAPLE = 2
@@ -53,7 +64,13 @@ class TreeType(Enum):
 
 @dataclass
 class ColorPalette:
-    """Color palette for consistent tree coloring."""
+    """
+    Defines a consistent color palette for world generation.
+
+    This ensures that generated features like trees have a cohesive and
+    pre-defined set of colors, preventing random color generation during
+    rendering.
+    """
     trunk_base: Tuple[int, int, int] = (101, 67, 33)
     trunk_shadow: Tuple[int, int, int] = (80, 50, 25)
     trunk_highlight: Tuple[int, int, int] = (120, 80, 40)
@@ -90,7 +107,13 @@ class ColorPalette:
 
 @dataclass
 class TreeData:
-    """Immutable tree data structure with persistent colors."""
+    """
+    An immutable data structure holding all information for a single tree.
+
+    By storing rendering-specific data like colors directly in this structure,
+    it ensures that each tree's appearance is persistent and determined at
+    generation time, preventing issues like color flashing during rendering.
+    """
     x: int
     y: int
     tree_type: TreeType
@@ -106,7 +129,12 @@ class TreeData:
     is_extended: bool = False
     
     def to_dict(self) -> Dict:
-        """Convert to dictionary for serialization."""
+        """
+        Converts the TreeData object to a JSON-serializable dictionary.
+
+        Returns:
+            Dict: A dictionary representation of the tree's data.
+        """
         return {
             "x": self.x,
             "y": self.y,
@@ -124,7 +152,15 @@ class TreeData:
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'TreeData':
-        """Create from dictionary."""
+        """
+        Creates a TreeData object from a dictionary.
+
+        Args:
+            data (Dict): A dictionary containing tree data.
+
+        Returns:
+            TreeData: A new instance of the TreeData class.
+        """
         return cls(
             x=data["x"],
             y=data["y"],
@@ -143,7 +179,9 @@ class TreeData:
 
 @dataclass
 class TileData:
-    """Immutable tile data structure."""
+    """
+    An immutable data structure for individual tiles in the world grid.
+    """
     x: int
     y: int
     terrain_type: TerrainType
@@ -151,7 +189,12 @@ class TileData:
     is_border: bool = False
     
     def to_dict(self) -> Dict:
-        """Convert to dictionary for serialization."""
+        """
+        Converts the TileData object to a JSON-serializable dictionary.
+
+        Returns:
+            Dict: A dictionary representation of the tile's data.
+        """
         return {
             "x": self.x,
             "y": self.y,
@@ -162,7 +205,15 @@ class TileData:
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'TileData':
-        """Create from dictionary."""
+        """
+        Creates a TileData object from a dictionary.
+
+        Args:
+            data (Dict): A dictionary containing tile data.
+
+        Returns:
+            TileData: A new instance of the TileData class.
+        """
         return cls(
             x=data["x"],
             y=data["y"],
@@ -173,9 +224,24 @@ class TileData:
 
 
 class ModernWorldChunk:
-    """Modern world chunk with proper data structures and caching."""
+    """
+    Represents a chunk of the game world.
+
+    A chunk is a segment of the world grid, containing tiles, trees, and other
+    game objects. This class holds the generated data for a chunk and handles
+    its serialization.
+    """
     
     def __init__(self, x: int, y: int, size: int = 16):
+        """
+        Initializes a ModernWorldChunk.
+
+        Args:
+            x (int): The chunk's x-coordinate in the world grid.
+            y (int): The chunk's y-coordinate in the world grid.
+            size (int, optional): The size of the chunk (width and height) in tiles.
+                                  Defaults to 16.
+        """
         self.x = x
         self.y = y
         self.size = size
@@ -193,7 +259,12 @@ class ModernWorldChunk:
         self._is_generated: bool = False
     
     def to_dict(self) -> Dict:
-        """Convert to serializable dictionary."""
+        """
+        Converts the chunk's data to a JSON-serializable dictionary.
+
+        Returns:
+            Dict: A dictionary representation of the chunk.
+        """
         return {
             "x": self.x,
             "y": self.y,
@@ -208,7 +279,15 @@ class ModernWorldChunk:
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'ModernWorldChunk':
-        """Create from dictionary."""
+        """
+        Creates a ModernWorldChunk instance from a dictionary.
+
+        Args:
+            data (Dict): A dictionary containing chunk data.
+
+        Returns:
+            ModernWorldChunk: A new instance of the ModernWorldChunk class.
+        """
         chunk = cls(data["x"], data["y"], data["size"])
         chunk.tiles = [TileData.from_dict(tile_data) for tile_data in data["tiles"]]
         chunk.trees = [TreeData.from_dict(tree_data) for tree_data in data["trees"]]
@@ -229,9 +308,24 @@ class ModernWorldChunk:
 
 
 class ModernWorldGenerator:
-    """Modern world generator with proper separation of concerns."""
+    """
+    Handles the procedural generation of the game world.
+
+    This class uses noise functions to generate chunks of the world, including
+    terrain, biomes, and features like trees and resources. It manages chunk
+    loading and generation on-the-fly.
+    """
     
     def __init__(self, seed: Optional[int] = None):
+        """
+        Initializes the ModernWorldGenerator.
+
+        Args:
+            seed (Optional[int], optional): A seed for the random number and noise
+                                            generators to ensure reproducible worlds.
+                                            If None, a random seed is used.
+                                            Defaults to None.
+        """
         self.seed = seed if seed is not None else random.randint(0, 999999)
         self.noise_gen = OpenSimplex(seed=self.seed)
         self.chunk_size = 16
@@ -256,14 +350,36 @@ class ModernWorldGenerator:
         }
     
     def get_chunk(self, chunk_x: int, chunk_y: int) -> ModernWorldChunk:
-        """Get or generate a chunk at the given coordinates."""
+        """
+        Retrieves a chunk from memory or generates it if it doesn't exist.
+
+        Args:
+            chunk_x (int): The x-coordinate of the chunk.
+            chunk_y (int): The y-coordinate of the chunk.
+
+        Returns:
+            ModernWorldChunk: The requested world chunk.
+        """
         chunk_key = (chunk_x, chunk_y)
         if chunk_key not in self.loaded_chunks:
             self.loaded_chunks[chunk_key] = self._generate_chunk(chunk_x, chunk_y)
         return self.loaded_chunks[chunk_key]
     
     def _generate_chunk(self, chunk_x: int, chunk_y: int) -> ModernWorldChunk:
-        """Generate a new chunk with modern data structures."""
+        """
+        Generates a new chunk at the specified coordinates.
+
+        This internal method handles the entire generation process for a chunk,
+        including creating noise maps, determining the biome, generating terrain,
+        and adding features.
+
+        Args:
+            chunk_x (int): The x-coordinate of the chunk to generate.
+            chunk_y (int): The y-coordinate of the chunk to generate.
+
+        Returns:
+            ModernWorldChunk: The newly generated chunk.
+        """
         chunk = ModernWorldChunk(chunk_x, chunk_y, self.chunk_size)
         
         # Generate noise maps
@@ -295,7 +411,17 @@ class ModernWorldGenerator:
         return chunk
     
     def _generate_noise_map(self, chunk_x: int, chunk_y: int, scale: float) -> List[List[float]]:
-        """Generate a noise map for the chunk with edge smoothing."""
+        """
+        Generates a 2D noise map for a chunk using OpenSimplex noise.
+
+        Args:
+            chunk_x (int): The chunk's x-coordinate.
+            chunk_y (int): The chunk's y-coordinate.
+            scale (float): The scale of the noise (higher value = smoother).
+
+        Returns:
+            List[List[float]]: A 2D list of noise values between -1 and 1.
+        """
         noise_map = []
         for y in range(self.chunk_size):
             row = []
@@ -323,7 +449,17 @@ class ModernWorldGenerator:
         return noise_map
     
     def _determine_biome(self, temp: float, moisture: float, elevation: float) -> BiomeType:
-        """Determine biome type based on environmental factors."""
+        """
+        Determines the biome for a chunk based on its average environmental values.
+
+        Args:
+            temp (float): The average temperature of the chunk.
+            moisture (float): The average moisture of the chunk.
+            elevation (float): The average elevation of the chunk.
+
+        Returns:
+            BiomeType: The determined biome type for the chunk.
+        """
         if elevation > self.biome_thresholds[BiomeType.MOUNTAINS]["elevation"]:
             if temp > self.biome_thresholds[BiomeType.VOLCANIC]["temp"]:
                 return BiomeType.VOLCANIC
@@ -342,7 +478,12 @@ class ModernWorldGenerator:
             return BiomeType.PLAINS
     
     def _generate_terrain(self, chunk: ModernWorldChunk):
-        """Generate terrain tiles based on biome and noise maps."""
+        """
+        Generates the terrain tiles for a chunk based on its biome and noise maps.
+
+        Args:
+            chunk (ModernWorldChunk): The chunk to generate terrain for.
+        """
         for y in range(self.chunk_size):
             for x in range(self.chunk_size):
                 elevation = chunk.elevation_map[y][x]
@@ -360,7 +501,18 @@ class ModernWorldGenerator:
                 chunk.tiles.append(tile)
     
     def _get_terrain_type(self, biome: BiomeType, elevation: float, temperature: float, moisture: float) -> TerrainType:
-        """Determine terrain type based on biome and conditions."""
+        """
+        Determines the specific terrain type for a tile.
+
+        Args:
+            biome (BiomeType): The biome of the tile's chunk.
+            elevation (float): The tile's elevation value.
+            temperature (float): The tile's temperature value.
+            moisture (float): The tile's moisture value.
+
+        Returns:
+            TerrainType: The determined terrain type.
+        """
         if biome == BiomeType.MOUNTAINS and elevation > 0.7:
             return TerrainType.STONE
         elif biome == BiomeType.DESERT:
@@ -379,14 +531,29 @@ class ModernWorldGenerator:
             return TerrainType.GRASS
     
     def _add_biome_features(self, chunk: ModernWorldChunk):
-        """Add biome-specific features like trees."""
+        """
+        Adds biome-specific features, such as trees or rocks, to a chunk.
+
+        Args:
+            chunk (ModernWorldChunk): The chunk to add features to.
+        """
         if chunk.biome == BiomeType.FOREST:
             self._add_trees(chunk)
         elif chunk.biome == BiomeType.MOUNTAINS:
             self._add_rocks(chunk)
     
     def _add_trees(self, chunk: ModernWorldChunk, density: float = 0.15):
-        """Add trees with persistent colors to prevent flashing."""
+        """
+        Populates a chunk with trees based on noise and density.
+
+        This method ensures that trees are created with persistent color data
+        to prevent visual flashing.
+
+        Args:
+            chunk (ModernWorldChunk): The chunk to add trees to.
+            density (float, optional): The probability of a tree spawning on a
+                                     valid tile. Defaults to 0.15.
+        """
         tree_noise_map = self._generate_noise_map(chunk.x, chunk.y, self.feature_scale * 0.8)
         
         for y in range(self.chunk_size):
@@ -405,7 +572,22 @@ class ModernWorldGenerator:
     
     def _create_tree(self, x: int, y: int, is_border: bool = False, depth_layer: int = 0, 
                     is_extended: bool = False) -> TreeData:
-        """Create a tree with persistent colors to prevent flashing."""
+        """
+        Creates a single TreeData object with persistent, pre-determined colors.
+
+        Args:
+            x (int): The x-coordinate of the tree.
+            y (int): The y-coordinate of the tree.
+            is_border (bool, optional): Whether the tree is part of a border.
+                                        Defaults to False.
+            depth_layer (int, optional): The depth layer for border trees.
+                                         Defaults to 0.
+            is_extended (bool, optional): Whether the tree is part of an extended
+                                          forest area. Defaults to False.
+
+        Returns:
+            TreeData: The created tree data object.
+        """
         # Choose tree type
         if is_border:
             if depth_layer < 3:
@@ -449,7 +631,14 @@ class ModernWorldGenerator:
         )
     
     def _add_rocks(self, chunk: ModernWorldChunk, density: float = 0.05):
-        """Add rocks to the chunk."""
+        """
+        Adds rock structures to a chunk.
+
+        Args:
+            chunk (ModernWorldChunk): The chunk to add rocks to.
+            density (float, optional): The probability of a rock spawning on a
+                                     valid tile. Defaults to 0.05.
+        """
         for tile in chunk.tiles:
             if tile.terrain_type == TerrainType.STONE and random.random() < density:
                 structure = {
@@ -461,7 +650,12 @@ class ModernWorldGenerator:
                 chunk.structures.append(structure)
     
     def _add_resources(self, chunk: ModernWorldChunk):
-        """Add resources based on biome."""
+        """
+        Adds collectible resources to a chunk based on its biome.
+
+        Args:
+            chunk (ModernWorldChunk): The chunk to add resources to.
+        """
         resource_chances = {
             BiomeType.MOUNTAINS: {
                 "iron_ore": 0.02,
@@ -492,12 +686,27 @@ class ModernWorldGenerator:
                         chunk.resources.append(resource_data)
     
     def save_chunk(self, chunk: ModernWorldChunk, save_dir: str = "world/chunks"):
-        """Save a chunk to disk."""
+        """
+        Saves a chunk's data to a JSON file.
+
+        Args:
+            chunk (ModernWorldChunk): The chunk to save.
+            save_dir (str, optional): The directory to save the chunk file in.
+                                      Defaults to "world/chunks".
+        """
         os.makedirs(save_dir, exist_ok=True)
         filename = f"{save_dir}/chunk_{chunk.x}_{chunk.y}.json"
         with open(filename, 'w') as f:
             json.dump(chunk.to_dict(), f, indent=2)
     
     def load_chunk_from_dict(self, chunk_data: Dict) -> ModernWorldChunk:
-        """Create a chunk from dictionary data."""
+        """
+        Creates a ModernWorldChunk instance from a dictionary.
+
+        Args:
+            chunk_data (Dict): The dictionary containing the chunk's data.
+
+        Returns:
+            ModernWorldChunk: A new chunk instance populated with the provided data.
+        """
         return ModernWorldChunk.from_dict(chunk_data)

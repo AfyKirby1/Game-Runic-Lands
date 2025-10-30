@@ -9,6 +9,12 @@ from systems.options import OptionsSystem, AVAILABLE_RESOLUTIONS
 from systems.music_player import MusicPlayerSystem  # Import the music player system
 
 class OptionsMenuState(Enum):
+    """
+    Enumeration for the different states of the options menu.
+
+    This allows the menu to switch between different views like main, video,
+    audio, and controls settings.
+    """
     MAIN = auto()
     VIDEO = auto()
     AUDIO = auto()
@@ -17,7 +23,22 @@ class OptionsMenuState(Enum):
     MUSIC_PLAYER = auto()  # Add music player state
 
 class OptionsMenu:
+    """
+    Manages the options menu UI, including video, audio, and control settings.
+
+    This class is responsible for creating, handling input for, and drawing all
+    UI elements within the options menu. It interacts with the OptionsSystem to
+    apply and save changes.
+    """
     def __init__(self, screen_size, options_system: OptionsSystem):
+        """
+        Initializes the OptionsMenu.
+
+        Args:
+            screen_size (Tuple[int, int]): The current size of the screen.
+            options_system (OptionsSystem): The main options system instance for
+                                            managing game settings.
+        """
         self.screen_size = screen_size
         self.options = options_system
         self.state = OptionsMenuState.MAIN
@@ -44,12 +65,28 @@ class OptionsMenu:
         self._setup_ui()
 
     def resize(self, new_screen_size):
-        """Recalculate UI layout based on new screen size."""
+        """
+        Recalculates the UI layout based on a new screen size.
+
+        This is essential for maintaining a responsive layout when the game's
+        resolution changes.
+
+        Args:
+            new_screen_size (Tuple[int, int]): The new screen dimensions.
+        """
         print(f"DEBUG: OptionsMenu resizing to {new_screen_size}") # DEBUG LOG
         self.screen_size = new_screen_size
         self._setup_ui() # Re-run the UI setup with the new size
 
     def _setup_ui(self):
+        """
+        Initializes and arranges all UI elements for each menu state.
+
+        This method creates buttons, sliders, labels, etc., for each section
+        of the options menu (Main, Video, Audio, Controls) and stores them
+        in the `self.elements` dictionary. It uses relative positioning to adapt
+        to different screen sizes.
+        """
         self.elements = {}
         screen_w, screen_h = self.screen_size
         center_x = screen_w // 2
@@ -187,6 +224,20 @@ class OptionsMenu:
         ]
 
     def handle_input(self, events):
+        """
+        Processes user input for the options menu.
+
+        This method handles mouse clicks, keyboard presses, and other events
+        to interact with the UI elements. It updates settings, changes menu
+        states, and manages the key rebinding process.
+
+        Args:
+            events (List[pygame.event.Event]): A list of Pygame events to process.
+
+        Returns:
+            Optional[str]: Returns 'exit_options' if the user backs out of the
+                           main options menu, otherwise returns None.
+        """
         # For video toggle buttons
         self._update_video_toggle_buttons()
         self._update_gui_scale_slider_label()
@@ -371,6 +422,9 @@ class OptionsMenu:
         return None
 
     def _update_resolution_label(self):
+        """
+        Updates the text of the resolution label in the video settings.
+        """
         res_text = f"{self.options.video['resolution'][0]} x {self.options.video['resolution'][1]}"
         for elem in self.elements[OptionsMenuState.VIDEO]:
             if isinstance(elem, Label) and elem.tag == 'resolution_label':
@@ -378,51 +432,82 @@ class OptionsMenu:
                 break
                 
     def _update_video_toggle_buttons(self):
-         for elem in self.elements[OptionsMenuState.VIDEO]:
+        """
+        Syncs the state of video-related toggle buttons with the current settings.
+        """
+        for elem in self.elements[OptionsMenuState.VIDEO]:
             if isinstance(elem, ToggleButton):
-                 if elem.action == 'toggle_fullscreen': elem.is_on = self.options.video['fullscreen']
-                 elif elem.action == 'toggle_vsync': elem.is_on = self.options.video['vsync']
-                 elif elem.action == 'toggle_particles': elem.is_on = self.options.video['particles_enabled']
+                if elem.action == 'toggle_fullscreen': elem.is_on = self.options.video['fullscreen']
+                elif elem.action == 'toggle_vsync': elem.is_on = self.options.video['vsync']
+                elif elem.action == 'toggle_particles': elem.is_on = self.options.video['particles_enabled']
                  
     def _update_gui_scale_slider_label(self):
-         scale_text = f"{self.options.video['gui_scale']:.1f}"
-         for elem in self.elements[OptionsMenuState.VIDEO]:
-             if isinstance(elem, Label) and elem.tag == 'gui_scale_label':
-                 elem.set_text(scale_text)
-             elif isinstance(elem, Slider) and elem.action == 'set_gui_scale':
-                 elem.set_value(self.options.video['gui_scale'])
+        """
+        Updates the GUI scale slider's label and position to reflect the current value.
+        """
+        scale_text = f"{self.options.video['gui_scale']:.1f}"
+        for elem in self.elements[OptionsMenuState.VIDEO]:
+            if isinstance(elem, Label) and elem.tag == 'gui_scale_label':
+                elem.set_text(scale_text)
+            elif isinstance(elem, Slider) and elem.action == 'set_gui_scale':
+                elem.set_value(self.options.video['gui_scale'])
 
     def _update_audio_slider_labels(self):
-         for elem in self.elements[OptionsMenuState.AUDIO]:
-             if isinstance(elem, Label):
+        """
+        Updates all audio slider labels and positions to reflect current volume settings.
+        """
+        for elem in self.elements[OptionsMenuState.AUDIO]:
+            if isinstance(elem, Label):
                 if elem.tag == 'master_volume_label': elem.set_text(f"{self.options.audio['master_volume']:.0%}")
                 elif elem.tag == 'music_volume_label': elem.set_text(f"{self.options.audio['music_volume']:.0%}")
                 elif elem.tag == 'sfx_volume_label': elem.set_text(f"{self.options.audio['sfx_volume']:.0%}")
-             elif isinstance(elem, Slider):
+            elif isinstance(elem, Slider):
                 if elem.action == 'set_master_volume': elem.set_value(self.options.audio['master_volume'])
                 elif elem.action == 'set_music_volume': elem.set_value(self.options.audio['music_volume'])
                 elif elem.action == 'set_sfx_volume': elem.set_value(self.options.audio['sfx_volume'])
                 
     def _update_audio_toggle_buttons(self):
+        """
+        Syncs the state of the mute toggle button with the current audio settings.
+        """
         for elem in self.elements[OptionsMenuState.AUDIO]:
             if isinstance(elem, ToggleButton) and elem.action == 'toggle_mute':
                 elem.is_on = self.options.audio['is_muted']
 
     def _update_control_button_text(self, player, action, key_name):
-         for elem in self.elements.get(OptionsMenuState.CONTROLS, []):
-             if isinstance(elem, Button) and elem.tag == (player, action):
-                 elem.set_text(key_name)
-                 break
+        """
+        Updates the text of a specific control button after a key has been rebound.
+
+        Args:
+            player (str): The player identifier ('player1' or 'player2').
+            action (str): The action that was rebound (e.g., 'up').
+            key_name (str): The new key name to display on the button.
+        """
+        for elem in self.elements.get(OptionsMenuState.CONTROLS, []):
+            if isinstance(elem, Button) and elem.tag == (player, action):
+                elem.set_text(key_name)
+                break
                  
     def _update_all_control_button_text(self):
-         for elem in self.elements.get(OptionsMenuState.CONTROLS, []):
-             if isinstance(elem, Button) and isinstance(elem.tag, tuple): # Control buttons have tuple tags
-                 player, action = elem.tag
-                 key_name = pygame.key.name(self.options.get_keybind(player, action) or 0)
-                 elem.set_text(key_name)
+        """
+        Updates the text for all control buttons to reflect the current keybindings.
+        """
+        for elem in self.elements.get(OptionsMenuState.CONTROLS, []):
+            if isinstance(elem, Button) and isinstance(elem.tag, tuple): # Control buttons have tuple tags
+                player, action = elem.tag
+                key_name = pygame.key.name(self.options.get_keybind(player, action) or 0)
+                elem.set_text(key_name)
 
     def draw(self, screen):
-        """Draw the options menu"""
+        """
+        Draws the options menu on the provided screen surface.
+
+        This method renders the appropriate UI elements based on the current
+        menu state.
+
+        Args:
+            screen (pygame.Surface): The screen surface to draw on.
+        """
         # Fill background
         screen.fill(self.colors['background'])
         

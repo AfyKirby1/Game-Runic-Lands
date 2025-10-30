@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""
-Test runner for Runic Lands.
+"""Test runner for Runic Lands.
+
+This script discovers and runs all tests in the 'tests' directory.
+It provides a command-line interface for executing the test suite.
 """
 import unittest
 import sys

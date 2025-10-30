@@ -19,9 +19,23 @@ project_root = Path(__file__).parent.parent
 AUDIO_DIR = project_root / "assets" / "audio"
 
 class AudioManager:
-    """Unified audio management system for Runic Lands"""
+    """
+    Manages all audio-related tasks for the Runic Lands project.
+
+    This class handles the generation, validation, analysis, and backup of
+    all audio assets, including sound effects and music. This is an older
+    version of the manager.
+    """
     
     def __init__(self, audio_dir: Path = None):
+        """
+        Initializes the AudioManager.
+
+        Args:
+            audio_dir (Path, optional): The path to the main audio directory.
+                                        If None, a default path is used.
+                                        Defaults to None.
+        """
         self.audio_dir = audio_dir or AUDIO_DIR
         self.audio_dir.mkdir(parents=True, exist_ok=True)
         
@@ -45,13 +59,24 @@ class AudioManager:
         self.required_files.update(self.game_sections)
 
     def print_header(self, title: str):
-        """Print a formatted header"""
+        """
+        Prints a formatted header to the console.
+
+        Args:
+            title (str): The title to display.
+        """
         print(f"\n{'='*50}")
         print(f" {title}")
         print(f"{'='*50}")
 
     def check_files(self) -> Dict[str, bool]:
-        """Check which required files exist"""
+        """
+        Checks for the existence of all required audio files.
+
+        Returns:
+            Dict[str, bool]: A dictionary mapping filenames to a boolean
+                             indicating if the file exists.
+        """
         self.print_header("Checking Audio Files")
         
         status = {}
@@ -76,7 +101,16 @@ class AudioManager:
         return status
 
     def analyze_files(self) -> Dict[str, Dict]:
-        """Analyze audio file properties"""
+        """
+        Analyzes the properties of all existing required audio files.
+
+        This reads each audio file to extract metadata like duration,
+        sample rate, channels, and file size.
+
+        Returns:
+            Dict[str, Dict]: A dictionary where keys are filenames and
+                             values are dictionaries of audio properties.
+        """
         self.print_header("Analyzing Audio Files")
         
         analyses = {}
@@ -115,7 +149,19 @@ class AudioManager:
         return analyses
 
     def generate_menu_music(self, force: bool = False) -> bool:
-        """Generate menu music sections"""
+        """
+        Generates all 10 sections of the main menu music.
+
+        Each section is a unique melodic pattern.
+
+        Args:
+            force (bool, optional): If True, existing files will be
+                                    overwritten. Defaults to False.
+
+        Returns:
+            bool: True if all sections were generated successfully,
+                  False otherwise.
+        """
         self.print_header("Generating Menu Music")
         
         # Musical note frequencies (in Hz)
@@ -167,7 +213,19 @@ class AudioManager:
         return success_count == len(sections)
 
     def generate_game_music(self, force: bool = False) -> bool:
-        """Generate game music sections"""
+        """
+        Generates all 10 sections of the in-game music.
+
+        These sections are more atmospheric than the menu music.
+
+        Args:
+            force (bool, optional): If True, existing files will be
+                                    overwritten. Defaults to False.
+
+        Returns:
+            bool: True if all sections were generated successfully,
+                  False otherwise.
+        """
         self.print_header("Generating Game Music")
         
         # Game music uses different patterns - more atmospheric
@@ -219,7 +277,19 @@ class AudioManager:
         return success_count == len(sections)
 
     def generate_sound_effects(self, force: bool = False) -> bool:
-        """Generate basic sound effects"""
+        """
+        Generates the basic sound effects for the game.
+
+        This includes sounds for menu interactions and combat.
+
+        Args:
+            force (bool, optional): If True, existing files will be
+                                    overwritten. Defaults to False.
+
+        Returns:
+            bool: True if all sound effects were generated successfully,
+                  False otherwise.
+        """
         self.print_header("Generating Sound Effects")
         
         effects = {
@@ -254,7 +324,18 @@ class AudioManager:
 
     def _create_musical_section(self, note_sequence: List[str], notes: Dict[str, float], 
                                duration: float = 2.0) -> np.ndarray:
-        """Create a musical section from note sequence"""
+        """
+        Creates a NumPy array of audio data from a sequence of musical notes.
+
+        Args:
+            note_sequence (List[str]): A list of note names (e.g., ['C4', 'E4']).
+            notes (Dict[str, float]): A dictionary mapping note names to frequencies.
+            duration (float, optional): The total duration of the audio clip in seconds.
+                                        Defaults to 2.0.
+
+        Returns:
+            np.ndarray: A 1D NumPy array containing the generated audio waveform.
+        """
         sample_rate = 44100
         total_samples = int(sample_rate * duration)
         audio_data = np.zeros(total_samples)
@@ -289,7 +370,12 @@ class AudioManager:
         return audio_data
 
     def _create_click_sound(self) -> np.ndarray:
-        """Create a click sound effect"""
+        """
+        Generates a short, high-frequency click sound.
+
+        Returns:
+            np.ndarray: A 1D NumPy array of the click sound waveform.
+        """
         sample_rate = 44100
         duration = 0.1
         t = np.linspace(0, duration, int(sample_rate * duration), False)
@@ -303,7 +389,12 @@ class AudioManager:
         return click * fade
 
     def _create_select_sound(self) -> np.ndarray:
-        """Create a selection sound effect"""
+        """
+        Generates a rising tone sound for selection confirmation.
+
+        Returns:
+            np.ndarray: A 1D NumPy array of the selection sound waveform.
+        """
         sample_rate = 44100
         duration = 0.2
         t = np.linspace(0, duration, int(sample_rate * duration), False)
@@ -320,7 +411,14 @@ class AudioManager:
         return select * envelope
 
     def _create_attack_sound(self) -> np.ndarray:
-        """Create an attack sound effect"""
+        """
+        Generates a 'swish' sound for a player attack.
+
+        This is created using filtered white noise.
+
+        Returns:
+            np.ndarray: A 1D NumPy array of the attack sound waveform.
+        """
         sample_rate = 44100
         duration = 0.3
         t = np.linspace(0, duration, int(sample_rate * duration), False)
@@ -338,7 +436,18 @@ class AudioManager:
 
     def _save_wave_file(self, audio_data: np.ndarray, filepath: Path, 
                        sample_rate: int = 44100) -> bool:
-        """Save audio data as WAV file"""
+        """
+        Saves a NumPy array of audio data to a .wav file.
+
+        Args:
+            audio_data (np.ndarray): The audio waveform to save.
+            filepath (Path): The path to the output .wav file.
+            sample_rate (int, optional): The sample rate of the audio.
+                                         Defaults to 44100.
+
+        Returns:
+            bool: True if the file was saved successfully, False otherwise.
+        """
         try:
             # Convert to 16-bit PCM
             audio_16bit = np.int16(audio_data * 32767)
@@ -356,7 +465,15 @@ class AudioManager:
             return False
 
     def backup_files(self) -> bool:
-        """Create backups of existing audio files"""
+        """
+        Creates a backup of all existing required audio files.
+
+        Backups are stored in the 'assets/audio/backups' directory with a
+        '.backup' extension.
+
+        Returns:
+            bool: True if at least one file was backed up, False otherwise.
+        """
         self.print_header("Creating Backups")
         
         backup_dir = self.audio_dir / "backups"
@@ -380,7 +497,14 @@ class AudioManager:
         return backed_up > 0
 
     def restore_backups(self) -> bool:
-        """Restore files from backups"""
+        """
+        Restores all audio files from the backup directory.
+
+        This overwrites existing audio files with their backed-up versions.
+
+        Returns:
+            bool: True if at least one file was restored, False otherwise.
+        """
         self.print_header("Restoring from Backups")
         
         backup_dir = self.audio_dir / "backups"
@@ -405,7 +529,19 @@ class AudioManager:
         return restored > 0
 
     def generate_all_missing(self, force: bool = False) -> bool:
-        """Generate all missing audio files"""
+        """
+        A convenience method to generate all missing audio files at once.
+
+        This calls the individual generator methods for sound effects, menu
+        music, and game music.
+
+        Args:
+            force (bool, optional): If True, existing files will be
+                                    overwritten. Defaults to False.
+
+        Returns:
+            bool: True if all generation steps were successful, False otherwise.
+        """
         self.print_header("Generating All Missing Audio")
         
         success = True
@@ -416,7 +552,12 @@ class AudioManager:
         return success
 
 def main():
-    """Main CLI interface"""
+    """
+    The main command-line interface for the AudioManager script.
+
+    Provides arguments to check, analyze, generate, backup, and restore
+    audio files for the Runic Lands project.
+    """
     parser = argparse.ArgumentParser(description="Runic Lands Audio Manager")
     parser.add_argument("--check", action="store_true", help="Check which files exist")
     parser.add_argument("--analyze", action="store_true", help="Analyze audio file properties")

@@ -1,19 +1,23 @@
+"""This module defines the CombatSystem, which handles combat interactions."""
+
 import pygame
 from math import floor
 
 class CombatSystem:
+    """Manages combat between entities."""
     def __init__(self):
+        """Initializes the CombatSystem."""
         self.attack_cooldown = 0.5  # Attack cooldown in seconds
         self.last_attack_time = {}  # Track last attack time for each player
         self.attack_range = 50  # Attack range in pixels
         self.damage = 10  # Base damage
         
     def update(self, dt, players):
-        """Update combat state for all players.
-        
+        """Updates the combat state, primarily managing attack cooldowns.
+
         Args:
-            dt (float): Delta time in seconds
-            players (list): List of Player objects
+            dt (float): The time delta since the last update.
+            players (list): A list of player objects in the game.
         """
         # Update attack cooldowns
         for player in players:
@@ -23,14 +27,14 @@ class CombatSystem:
                     del self.last_attack_time[player]
     
     def handle_attack(self, attacker, target):
-        """Handle an attack from one player to another.
-        
+        """Handles an attack from one entity to another.
+
         Args:
-            attacker (Player): The attacking player
-            target (Player): The target player
-            
+            attacker: The entity initiating the attack.
+            target: The entity being attacked.
+
         Returns:
-            bool: True if attack was successful, False if on cooldown
+            bool: True if the attack was successful, False otherwise.
         """
         # Check if attacker is on cooldown
         if attacker in self.last_attack_time:
@@ -52,7 +56,14 @@ class CombatSystem:
         return False
 
     def calculate_damage(self, attacker):
-        """Calculate damage based on job and stats"""
+        """Calculates the damage an attacker will deal.
+
+        Args:
+            attacker: The entity dealing the damage.
+
+        Returns:
+            int: The calculated damage amount.
+        """
         base_damage = 10
         
         # Job-specific damage calculations

@@ -22,7 +22,17 @@ from systems.world_generation_modern import TreeData, TreeType
 
 @dataclass
 class RenderConfig:
-    """Configuration for tree rendering."""
+    """
+    Holds configuration settings for the tree renderer.
+
+    Attributes:
+        tile_size (int): The size of a single tile in pixels.
+        shadow_enabled (bool): Whether to render tree shadows.
+        shadow_alpha (int): The alpha transparency of shadows (0-255).
+        shadow_length (int): The length of the rendered shadows.
+        wind_effect (bool): Whether to apply a wind sway effect to trees.
+        wind_strength (float): The strength of the wind effect.
+    """
     tile_size: int = 32
     shadow_enabled: bool = True
     shadow_alpha: int = 80
@@ -32,21 +42,48 @@ class RenderConfig:
 
 
 class ModernTreeRenderer:
-    """Modern tree renderer with persistent colors and optimizations."""
+    """
+    Handles the rendering of trees with persistent colors and optimizations.
+
+    This renderer is designed to work with `TreeData` objects, ensuring that
+    each tree maintains its appearance across frames, preventing flashing.
+    It supports different tree types, wind effects, and shadows.
+    """
     
     def __init__(self, config: Optional[RenderConfig] = None):
+        """
+        Initializes the ModernTreeRenderer.
+
+        Args:
+            config (Optional[RenderConfig], optional): A configuration object.
+                                                       If None, default settings are used.
+                                                       Defaults to None.
+        """
         self.config = config or RenderConfig()
         self._cached_surfaces: Dict[Tuple, pygame.Surface] = {}
         self.wind_time = 0.0
     
     def update(self, dt: float):
-        """Update wind effects and other dynamic elements."""
+        """
+        Updates the renderer's state, such as the wind effect timer.
+
+        Args:
+            dt (float): The time delta since the last frame, in seconds.
+        """
         if self.config.wind_effect:
             self.wind_time += dt * 0.5
     
     def render_tree(self, screen: pygame.Surface, tree: TreeData, 
                    screen_pos: Tuple[float, float], offset: Tuple[float, float] = (0, 0)):
-        """Render a tree using its persistent colors."""
+        """
+        Renders a single tree to the screen.
+
+        Args:
+            screen (pygame.Surface): The screen surface to draw on.
+            tree (TreeData): The tree data object to render.
+            screen_pos (Tuple[float, float]): The base screen position for the tree.
+            offset (Tuple[float, float], optional): The camera offset. Defaults to (0, 0).
+        """
         x, y = screen_pos
         x += offset[0]
         y += offset[1]
@@ -68,7 +105,15 @@ class ModernTreeRenderer:
             self._render_oak_tree(screen, x + wind_offset, y, tree)
     
     def _render_oak_tree(self, screen: pygame.Surface, x: float, y: float, tree: TreeData):
-        """Render an oak tree with persistent colors."""
+        """
+        Renders an oak tree.
+
+        Args:
+            screen (pygame.Surface): The screen surface.
+            x (float): The x-coordinate for rendering.
+            y (float): The y-coordinate for rendering.
+            tree (TreeData): The tree's data.
+        """
         # Calculate dimensions
         trunk_width = int(10 * tree.size_modifier)
         trunk_height = int(20 * tree.size_modifier)
@@ -84,7 +129,15 @@ class ModernTreeRenderer:
         self._draw_oak_foliage(screen, x, y, tree)
     
     def _render_pine_tree(self, screen: pygame.Surface, x: float, y: float, tree: TreeData):
-        """Render a pine tree with persistent colors."""
+        """
+        Renders a pine tree.
+
+        Args:
+            screen (pygame.Surface): The screen surface.
+            x (float): The x-coordinate for rendering.
+            y (float): The y-coordinate for rendering.
+            tree (TreeData): The tree's data.
+        """
         # Calculate dimensions
         trunk_width = int(6 * tree.size_modifier)
         trunk_height = int(24 * tree.size_modifier)
@@ -97,7 +150,15 @@ class ModernTreeRenderer:
         self._draw_pine_needles(screen, x, y, tree)
     
     def _render_maple_tree(self, screen: pygame.Surface, x: float, y: float, tree: TreeData):
-        """Render a maple tree with persistent colors."""
+        """
+        Renders a maple tree.
+
+        Args:
+            screen (pygame.Surface): The screen surface.
+            x (float): The x-coordinate for rendering.
+            y (float): The y-coordinate for rendering.
+            tree (TreeData): The tree's data.
+        """
         # Calculate dimensions
         trunk_width = int(8 * tree.size_modifier)
         trunk_height = int(18 * tree.size_modifier)
@@ -110,7 +171,14 @@ class ModernTreeRenderer:
         self._draw_maple_leaves(screen, x, y, tree)
     
     def _draw_trunk(self, screen: pygame.Surface, trunk_rect: pygame.Rect, tree: TreeData):
-        """Draw trunk with shadow, base, and highlight."""
+        """
+        Draws the trunk of a tree, including base color, shadow, and highlight.
+
+        Args:
+            screen (pygame.Surface): The screen surface.
+            trunk_rect (pygame.Rect): The rectangle defining the trunk's position and size.
+            tree (TreeData): The tree's data, containing color information.
+        """
         # Trunk shadow (left side)
         shadow_rect = pygame.Rect(trunk_rect.left, trunk_rect.top, trunk_rect.width//3, trunk_rect.height)
         pygame.draw.rect(screen, tree.trunk_shadow_color, shadow_rect)
@@ -130,7 +198,15 @@ class ModernTreeRenderer:
                            (trunk_rect.left + 2, line_y), (trunk_rect.right - 2, line_y), 1)
     
     def _draw_oak_branches(self, screen: pygame.Surface, x: float, y: float, tree: TreeData):
-        """Draw oak tree branches."""
+        """
+        Draws the branches for an oak tree.
+
+        Args:
+            screen (pygame.Surface): The screen surface.
+            x (float): The base x-coordinate of the tree.
+            y (float): The base y-coordinate of the tree.
+            tree (TreeData): The tree's data.
+        """
         branch_color = (tree.trunk_base_color[0] + 10, tree.trunk_base_color[1] + 10, tree.trunk_base_color[2] + 10)
         
         # Left branch
@@ -145,7 +221,15 @@ class ModernTreeRenderer:
         pygame.draw.line(screen, branch_color, (x + 16, y + 12), (x + 16, y + 2), 3)
     
     def _draw_oak_foliage(self, screen: pygame.Surface, x: float, y: float, tree: TreeData):
-        """Draw oak tree foliage with layered depth."""
+        """
+        Draws the foliage for an oak tree as layered circular clusters.
+
+        Args:
+            screen (pygame.Surface): The screen surface.
+            x (float): The base x-coordinate of the tree.
+            y (float): The base y-coordinate of the tree.
+            tree (TreeData): The tree's data.
+        """
         foliage_centers = [
             (x + 16, y + 2),   # Top
             (x + 8, y + 5),    # Left

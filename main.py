@@ -31,6 +31,14 @@ from scenes.main_menu import MainMenu
 
 # Set up logging
 def setup_logging() -> logging.Logger:
+    """Set up logging for the application.
+
+    This function configures the root logger to log messages to both a file and the console.
+    It also sets up a global exception handler to catch and log any unhandled exceptions.
+
+    Returns:
+        logging.Logger: The configured root logger instance.
+    """
     log_dir = Path("logs")
     log_dir.mkdir(exist_ok=True)
     
@@ -125,7 +133,17 @@ def setup_audio() -> Dict[str, Any]:
         return {}
 
 class Game:
+    """The main class for the Runic Lands game.
+
+    This class initializes all game systems, handles the main game loop,
+    and manages game state transitions.
+    """
     def __init__(self):
+        """Initializes the main game components.
+
+        This method sets up Pygame, logging, audio, the options system,
+        the graphics engine, and the main menu.
+        """
         try:
             # Initialize Pygame FIRST
             pygame.init()
@@ -462,7 +480,11 @@ class Game:
             self.logger.error(f"Error in options state drawing: {e}", exc_info=True)
 
     def run(self) -> None:
-        """Main game loop."""
+        """Runs the main game loop.
+
+        This method continuously handles input, updates the game state,
+        and draws the screen until the game exits.
+        """
         running = True
         while running:
             running = self.handle_input()
@@ -472,7 +494,11 @@ class Game:
         pygame.quit()
 
     def return_to_menu(self):
-        """Return to the main menu from game state."""
+        """Returns to the main menu.
+
+        This method resets the game state to the main menu, cleaning up
+        any in-game objects and stopping game music.
+        """
         try:
             self.current_state = "main_menu"
             
@@ -497,7 +523,12 @@ class Game:
             self.logger.error(f"Error returning to menu: {e}")
 
     def start_new_game(self, mode=GameState.SINGLE_PLAYER):
-        """Start a new game."""
+        """Starts a new game.
+
+        Args:
+            mode (GameState, optional): The game mode to start.
+                Defaults to GameState.SINGLE_PLAYER.
+        """
         self.current_state = "game"
         if mode == GameState.SINGLE_PLAYER:
             self.init_single_player()
@@ -505,6 +536,7 @@ class Game:
             self.init_local_coop()
 
     def init_single_player(self):
+        """Initializes a single-player game session."""
         self.logger.info("Initializing single-player mode...")
         try:
             # Clear existing render layers
@@ -589,6 +621,7 @@ class Game:
             self.return_to_menu()
     
     def init_local_coop(self):
+        """Initializes a local co-op game session."""
         # Clear existing render layers
         for layer in RenderLayer:
             self.graphics.clear_layer(layer)
@@ -646,7 +679,7 @@ class Game:
             pass  # Don't crash during cleanup
 
     def save_current_game(self):
-        """Save the current game state"""
+        """Saves the current game state to a file."""
         if not self.world or not self.players:
             print("Nothing to save!")
             return
@@ -700,7 +733,7 @@ class Game:
             print("Failed to save game!")
     
     def load_game(self):
-        """Load a saved game"""
+        """Loads a game state from a file."""
         # For now, we'll just load the most recent save
         # In the future, add a proper save selection UI
         
@@ -908,7 +941,11 @@ class Game:
             y_pos -= 25  # Move up for next hint
 
     def create_game(self):
-        """Create a new game world"""
+        """Creates a new game world and player.
+
+        This method initializes a new game world, sets up the player,
+        and adds initial items to the player's inventory.
+        """
         # Get keybinds from options system
         player_controls = {
             'up': self.options_system.get_keybind('player1', 'up'),
@@ -968,7 +1005,12 @@ class Game:
             self.options_system.queue_game_music()
 
     def _handle_video_change(self):
-        """Handle video setting changes like resolution and fullscreen"""
+        """Handles video setting changes.
+
+        This method is called when video settings such as resolution or
+        fullscreen mode are changed in the options menu. It updates the
+        graphics engine with the new settings.
+        """
         try:
             # Get current video settings from options
             if hasattr(self.options_system, 'video'):

@@ -1,3 +1,5 @@
+"""This module defines the Player class, which represents the user-controlled character."""
+
 import pygame
 from entities.character import Character
 from systems.sprite import CharacterSprite, AnimationState, Direction
@@ -12,7 +14,17 @@ from typing import Tuple, Dict
 logger = logging.getLogger(__name__)
 
 class Player(Character):
+    """Represents the player character, inheriting from the base Character class."""
     def __init__(self, x: float, y: float, color: Tuple[int, int, int], controls: Dict[str, int], world=None):
+        """Initializes the Player object.
+
+        Args:
+            x (float): The initial x-coordinate of the player.
+            y (float): The initial y-coordinate of the player.
+            color (Tuple[int, int, int]): The color of the player.
+            controls (Dict[str, int]): A dictionary mapping actions to keyboard keys.
+            world (any, optional): A reference to the game world. Defaults to None.
+        """
         super().__init__(x, y, color)
         self.pos = [x, y]
         self.color = color
@@ -66,7 +78,15 @@ class Player(Character):
             self.use_sprite = False
         
     def load_animation_frames(self, sprite_path: str, frame_count: int):
-        """Load animation frames from a sprite sheet"""
+        """Loads animation frames from a sprite sheet.
+
+        Args:
+            sprite_path (str): The path to the sprite sheet image.
+            frame_count (int): The number of frames in the sprite sheet.
+
+        Returns:
+            List[pygame.Surface]: A list of animation frames.
+        """
         try:
             sprite_sheet = pygame.image.load(sprite_path).convert_alpha()
             frames = []
@@ -85,7 +105,7 @@ class Player(Character):
             return [self.sprite_img]  # Fallback to base sprite
 
     def load_animations(self):
-        """Load animation frames"""
+        """Loads all animation sprite sheets for the player."""
         # Check for animation sprite sheets
         base_dir = "assets/sprites/characters/player/png"
         
@@ -122,7 +142,7 @@ class Player(Character):
         logger.info(f"Animation loading complete. States available: {list(self.animations.keys())}")
         
     def update_name_text(self):
-        """Update the name text surface with current name and level"""
+        """Updates the player's name and level text surface."""
         self.name_text = self.font.render(f"{self.name} Lv.{self.level}", True, (255, 255, 255))
         # Create a rect for the text surface
         self.name_text_rect = self.name_text.get_rect()
@@ -130,7 +150,11 @@ class Player(Character):
         self.name_text_rect.center = (0, 0)  # Initial position, will be updated later
         
     def move(self, keys):
-        """Handle player movement based on keyboard input"""
+        """Handles player movement based on keyboard input.
+
+        Args:
+            keys (dict): A dictionary of pressed keys.
+        """
         dx = dy = 0
         
         # Check if running key is pressed
@@ -201,7 +225,11 @@ class Player(Character):
         self.pos[1] = new_y
         
     def update(self, dt: float):
-        """Update player state including animations"""
+        """Updates the player's state, including animations.
+
+        Args:
+            dt (float): The time delta since the last update.
+        """
         # Store previous state for change detection
         prev_state = getattr(self, '_prev_state', None)
         prev_direction = getattr(self, '_prev_direction', None)
@@ -243,7 +271,12 @@ class Player(Character):
                 self.current_frame = 0
         
     def draw(self, screen: pygame.Surface, offset: Tuple[float, float] = (0, 0)):
-        """Draw the player with proper animation"""
+        """Draws the player on the screen.
+
+        Args:
+            screen (pygame.Surface): The surface to draw the player on.
+            offset (Tuple[float, float], optional): The camera offset. Defaults to (0, 0).
+        """
         # Calculate screen position (offset from camera)
         screen_x = int(self.pos[0] - offset[0])
         screen_y = int(self.pos[1] - offset[1])
@@ -308,15 +341,30 @@ class Player(Character):
             screen.blit(self.name_text, self.name_text_rect)
         
     def add_item(self, item):
-        """Add an item to the player's inventory"""
+        """Adds an item to the player's inventory.
+
+        Args:
+            item (Item): The item to add.
+        """
         self.inventory.add_item(item)
         
     def remove_item(self, item):
-        """Remove an item from the player's inventory"""
+        """Removes an item from the player's inventory.
+
+        Args:
+            item (Item): The item to remove.
+        """
         self.inventory.remove_item(item)
     
     def use_item(self, index):
-        """Use an item at the given inventory slot"""
+        """Uses an item from the player's inventory.
+
+        Args:
+            index (int): The inventory index of the item to use.
+
+        Returns:
+            bool: True if the item was used successfully, False otherwise.
+        """
         item = self.inventory.get_item(index)
         if not item:
             return False
@@ -333,7 +381,11 @@ class Player(Character):
         return False
 
     def get_stats_with_equipment(self):
-        """Get player stats including equipment bonuses"""
+        """Calculates the player's stats including bonuses from equipped items.
+
+        Returns:
+            dict: A dictionary of the player's combined stats.
+        """
         base_stats = {
             "hp": self.stats.hp,
             "mp": self.stats.mp,
